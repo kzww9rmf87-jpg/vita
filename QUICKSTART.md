@@ -180,11 +180,25 @@ Dans Xcode :
 
 ### Créer un compte
 
-1. L'app affiche l'écran d'authentification
-2. Appuyer sur **Se connecter avec Apple**
-3. Dans le simulateur : Features → Apple Pay and Passbook → Set up Face ID, puis utiliser ton Apple ID de développeur
+#### Option A — Mode développeur (recommandé sur simulateur)
 
-> Alternative rapide : utiliser l'authentification email/mot de passe si elle est exposée par l'auth-service.
+En configuration **Debug**, un bouton **"Continuer en mode développeur"** apparaît en bas de l'écran de connexion.
+
+Ce bouton crée automatiquement un compte `dev@vita.test` et se connecte avec. Aucune configuration supplémentaire n'est requise.
+
+- Le compte est créé la première fois (appel à `/auth/register`), puis les fois suivantes l'app se connecte directement (`/auth/login`).
+- Ce bouton est compilé uniquement sous `#if DEBUG`. Il est **absent des builds Release** — aucune fuite en production.
+
+#### Option B — Sign in with Apple (build sur device physique)
+
+1. Appuyer sur **Se connecter avec Apple**
+2. Un Apple ID développeur est requis — fonctionne sur device physique ou simulateur avec un compte Apple configuré dans Xcode > Settings > Accounts.
+
+> **Sur simulateur sans Apple ID configuré** : utilise toujours l'Option A.
+
+#### Option C — Email / mot de passe
+
+Le formulaire email/mot de passe est disponible en bas de l'écran d'authentification. Créer un compte avec n'importe quelle adresse email valide.
 
 ### Effectuer un check-in
 
@@ -220,8 +234,15 @@ iOS App (simulateur)
     :6379  Redis (Docker)
 ```
 
-En développement, `API_BASE_URL` dans `project.yml` pointe sur `:3002` (data-service).
-L'auth utilise `:3001` — configurer les deux URLs si nécessaire dans `APIClient.swift`.
+L'iOS route automatiquement selon le préfixe du path :
+
+| Préfixe | Service | Port |
+|---|---|---|
+| `/auth/*` | auth-service | `:3001` |
+| tout le reste | data-service | `:3002` |
+| *(jamais)* | ai-engine | `:3003` |
+
+Les URLs sont configurées dans `project.yml` (`AUTH_BASE_URL`, `DATA_BASE_URL`) et injectées dans l'Info.plist à la génération XcodeGen. Pour pointer vers un serveur distant, modifier ces deux valeurs dans `project.yml` puis relancer `xcodegen generate`.
 
 ---
 
@@ -235,6 +256,9 @@ Vérifier que `ANTHROPIC_API_KEY` est renseignée et valide. Vérifier que l'ai-
 
 **SSE se déconnecte immédiatement**
 Le JWT token est peut-être expiré. Se déconnecter et reconnecter dans l'app.
+
+**Sign in with Apple — Error Code=1000 (ASAuthorizationError)**
+Le simulateur ne peut pas compléter Sign in with Apple sans un Apple ID configuré dans Xcode. Utilise le bouton **"Continuer en mode développeur"** à la place (visible uniquement en Debug).
 
 **"xcodegen: command not found"**
 `brew install xcodegen` puis fermer et rouvrir le terminal.

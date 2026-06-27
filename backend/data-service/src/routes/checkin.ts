@@ -56,18 +56,18 @@ async function generateAndPushRecommendation(
          content     = EXCLUDED.content,
          agent_source = EXCLUDED.agent_source,
          action_type = EXCLUDED.action_type`,
-      [userId, recommendation.agentSource, recommendation.content, recommendation.actionType ?? null]
+      [userId, recommendation.agent_source, recommendation.content, recommendation.action_type ?? null]
     )
 
     // Pousse la recommandation vers l'iOS via SSE
     sendEvent(userId, 'recommendation', {
       content: recommendation.content,
-      actionType: recommendation.actionType,
-      agentSource: recommendation.agentSource,
+      actionType: recommendation.action_type,
+      agentSource: recommendation.agent_source,
       confidence: recommendation.confidence,
     })
 
-    log.info({ userId, agentSource: recommendation.agentSource }, 'Recommendation generated and pushed')
+    log.info({ userId, agentSource: recommendation.agent_source }, 'Recommendation generated and pushed')
   } catch (err) {
     clearInterval(thinkingInterval)
 

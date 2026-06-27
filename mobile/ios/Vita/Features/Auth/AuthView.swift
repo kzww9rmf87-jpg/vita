@@ -87,6 +87,10 @@ struct AuthView: View {
                     }
                     .font(VitaFont.body())
                     .foregroundColor(VitaColor.textSecondary)
+
+                    #if DEBUG
+                    DevLoginButton(vm: vm)
+                    #endif
                 }
                 .padding(.horizontal, VitaSpacing.lg)
                 .padding(.bottom, VitaSpacing.xxl)
@@ -104,6 +108,19 @@ final class AuthViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
+    // Les CodingKeys explicites empêchent JSONEncoder.vita (.convertToSnakeCase)
+    // de transformer firstName → first_name. Le backend Zod attend du camelCase.
+    private struct LoginBody: Encodable {
+        let email: String
+        let password: String
+    }
+
+    private struct RegisterBody: Encodable {
+        let email: String
+        let password: String
+        let firstName: String
+    }
+
     func submitEmailAuth() async {
         isLoading = true
         errorMessage = nil
@@ -112,12 +129,10 @@ final class AuthViewModel: ObservableObject {
         do {
             let tokens: TokenResponse
             if isRegistering {
-                struct RegisterBody: Encodable { let email, password, firstName: String }
                 tokens = try await APIClient.shared.post("/auth/register", body: RegisterBody(
                     email: email, password: password, firstName: firstName
                 ))
             } else {
-                struct LoginBody: Encodable { let email, password: String }
                 tokens = try await APIClient.shared.post("/auth/login", body: LoginBody(
                     email: email, password: password
                 ))
@@ -132,6 +147,47 @@ final class AuthViewModel: ObservableObject {
             errorMessage = "Une erreur est survenue. Réessaie."
         }
     }
+
+    #if DEBUG
+    // Compte de test créé automatiquement à la première utilisation.
+    // Jamais compilé en configuration Release.
+    private static let devEmail    = "dev@vita.test"
+    private static let devPassword = "VitaDev2024!"
+    private static let devName     = "Dev"
+
+    func devLogin() async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            let tokens: TokenResponse = try await APIClient.shared.post(
+                "/auth/login",
+                body: LoginBody(email: Self.devEmail, password: Self.devPassword)
+            )
+            await APIClient.shared.setTokens(access: tokens.accessToken, refresh: tokens.refreshToken)
+            NotificationCenter.default.post(name: .vitaAuthComplete, object: nil)
+        } catch APIError.unauthorized {
+            // L'utilisateur de test n'existe pas encore — on le crée puis on se reconnecte.
+            do {
+                let _: TokenResponse = try await APIClient.shared.post(
+                    "/auth/register",
+                    body: RegisterBody(email: Self.devEmail, password: Self.devPassword, firstName: Self.devName)
+                )
+                let tokens: TokenResponse = try await APIClient.shared.post(
+                    "/auth/login",
+                    body: LoginBody(email: Self.devEmail, password: Self.devPassword)
+                )
+                await APIClient.shared.setTokens(access: tokens.accessToken, refresh: tokens.refreshToken)
+                NotificationCenter.default.post(name: .vitaAuthComplete, object: nil)
+            } catch {
+                errorMessage = "Impossible de créer le compte de test : \(error.localizedDescription)"
+            }
+        } catch {
+            errorMessage = "Connexion dev échouée : \(error.localizedDescription)"
+        }
+    }
+    #endif
 
     func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) async {
         switch result {
@@ -160,6 +216,35 @@ final class AuthViewModel: ObservableObject {
         }
     }
 }
+
+#if DEBUG
+// Bouton visible uniquement en configuration Debug.
+// Permet de tester VITA sur simulateur sans Sign in with Apple.
+private struct DevLoginButton: View {
+    @ObservedObject var vm: AuthViewModel
+
+    var body: some View {
+        Button {
+            Task { await vm.devLogin() }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "hammer.fill")
+                Text("Continuer en mode développeur")
+            }
+            .font(VitaFont.caption())
+            .foregroundColor(VitaColor.textTertiary)
+            .padding(.vertical, VitaSpacing.xs)
+            .padding(.horizontal, VitaSpacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: VitaRadius.sm)
+                    .stroke(VitaColor.textTertiary.opacity(0.4), lineWidth: 1)
+            )
+        }
+        .disabled(vm.isLoading)
+        .padding(.top, VitaSpacing.xs)
+    }
+}
+#endif
 
 extension Notification.Name {
     static let vitaAuthComplete = Notification.Name("vita.auth.complete")

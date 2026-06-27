@@ -35,7 +35,8 @@ targets:
           - UIInterfaceOrientationPortrait
         NSHealthShareUsageDescription: "VITA synchronise tes données Apple Health pour personnaliser tes recommandations."
         NSHealthUpdateUsageDescription: "VITA synchronise tes données Apple Health pour personnaliser tes recommandations."
-        API_BASE_URL: "http://localhost:3000"
+        AUTH_BASE_URL: "http://127.0.0.1:3001"
+        DATA_BASE_URL: "http://127.0.0.1:3002"
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: false
           NSExceptionDomains:

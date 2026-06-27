@@ -22,23 +22,27 @@ export class AIEngineError extends Error {
 }
 
 // ── Types des contrats d'API avec l'ai-engine ──────────────────────
+// Les noms de champs sont en snake_case : ils correspondent exactement
+// aux modèles Pydantic de l'ai-engine (FastAPI). Ne pas modifier.
 
-export interface RecommendRequest {
-  userId: string
-  forceRefresh?: boolean
+interface RecommendRequest {
+  user_id: string
+  force_refresh?: boolean
 }
 
+// Les champs correspondent exactement à ce que FastAPI sérialise (snake_case).
 export interface RecommendResponse {
   content: string
-  actionType: string
-  agentSource: string
+  content_short: string | null
+  action_type: string
+  agent_source: string
   confidence: number
 }
 
-export interface ChatRequest {
-  userId: string
+interface ChatRequest {
+  user_id: string
   message: string
-  conversationId?: string
+  conversation_id?: string
 }
 
 export interface ChatResponse {
@@ -46,8 +50,8 @@ export interface ChatResponse {
   conversationId: string
 }
 
-export interface DetectPatternsRequest {
-  userId: string
+interface DetectPatternsRequest {
+  user_id: string
 }
 
 export interface DetectPatternsResponse {
@@ -67,6 +71,8 @@ async function callAIEngine<TBody, TResponse>(
 ): Promise<TResponse> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+
+  console.log('[ai-client] AI REQUEST', path, JSON.stringify(body, null, 2))
 
   let response: Response
   try {
@@ -110,8 +116,8 @@ export async function requestRecommendation(
   forceRefresh = false
 ): Promise<RecommendResponse> {
   return callAIEngine<RecommendRequest, RecommendResponse>('/recommend', {
-    userId,
-    forceRefresh,
+    user_id: userId,
+    force_refresh: forceRefresh,
   })
 }
 
@@ -121,9 +127,9 @@ export async function sendChatMessage(
   conversationId?: string
 ): Promise<ChatResponse> {
   return callAIEngine<ChatRequest, ChatResponse>('/chat', {
-    userId,
+    user_id: userId,
     message,
-    conversationId,
+    conversation_id: conversationId,
   })
 }
 
@@ -132,6 +138,6 @@ export async function triggerPatternDetection(
 ): Promise<DetectPatternsResponse> {
   return callAIEngine<DetectPatternsRequest, DetectPatternsResponse>(
     '/detect-patterns',
-    { userId }
+    { user_id: userId }
   )
 }

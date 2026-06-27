@@ -5,14 +5,26 @@ import Foundation
 actor APIClient {
     static let shared = APIClient()
 
-    private let baseURL: URL
+    // Deux services distincts — l'iOS ne contacte jamais l'ai-engine directement.
+    private let authBaseURL: URL  // :3001 — /auth/*
+    private let dataBaseURL: URL  // :3002 — tout le reste
+
     private var accessToken: String?
     private var refreshToken: String?
 
     private init() {
-        let urlString = Bundle.main.object(forInfoDictionaryKey: "API_BASE_URL") as? String
-            ?? "http://localhost:3000"
-        self.baseURL = URL(string: urlString)!
+        let auth = Bundle.main.object(forInfoDictionaryKey: "AUTH_BASE_URL") as? String
+            ?? "http://localhost:3001"
+        let data = Bundle.main.object(forInfoDictionaryKey: "DATA_BASE_URL") as? String
+            ?? "http://localhost:3002"
+        authBaseURL = URL(string: auth)!
+        dataBaseURL = URL(string: data)!
+    }
+
+    // Sélectionne le service cible selon le préfixe du path.
+    // /auth/* → auth-service (:3001) ; tout le reste → data-service (:3002).
+    private func baseURL(for path: String) -> URL {
+        path.hasPrefix("/auth") ? authBaseURL : dataBaseURL
     }
 
     func setTokens(access: String, refresh: String) {
@@ -41,7 +53,16 @@ actor APIClient {
     func post<Body: Encodable, Response: Decodable>(_ path: String, body: Body) async throws -> Response {
         let url = buildURL(path)
         var request = try buildRequest(url: url, method: "POST")
-        request.httpBody = try JSONEncoder.vita.encode(body)
+        // Les routes /auth/* attendent du camelCase (contrat Zod du backend).
+        // Toutes les autres routes attendent du snake_case (contrat data-service).
+        let encoder: JSONEncoder = path.hasPrefix("/auth") ? .vitaAuth : .vita
+        let encoded = try encoder.encode(body)
+        #if DEBUG
+        if let json = String(data: encoded, encoding: .utf8) {
+            print("[APIClient] POST \(path) body: \(json)")
+        }
+        #endif
+        request.httpBody = encoded
         return try await perform(request)
     }
 
@@ -74,7 +95,7 @@ actor APIClient {
     // MARK: — Internals
 
     private func buildURL(_ path: String, params: [String: String] = [:]) -> URL {
-        var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: true)!
+        var components = URLComponents(url: baseURL(for: path).appendingPathComponent(path), resolvingAgainstBaseURL: true)!
         if !params.isEmpty {
             components.queryItems = params.map { URLQueryItem(name: $0.key, value: $0.value) }
         }
@@ -164,9 +185,18 @@ enum APIError: LocalizedError {
 // MARK: — Helpers
 
 extension JSONEncoder {
+    // Encoder pour data-service : snake_case (ex: duration_minutes, quality_score)
     static let vita: JSONEncoder = {
         let e = JSONEncoder()
         e.keyEncodingStrategy = .convertToSnakeCase
+        e.dateEncodingStrategy = .iso8601
+        return e
+    }()
+
+    // Encoder pour auth-service : camelCase strict (contrat Zod : firstName, accessToken…)
+    static let vitaAuth: JSONEncoder = {
+        let e = JSONEncoder()
+        e.keyEncodingStrategy = .useDefaultKeys
         e.dateEncodingStrategy = .iso8601
         return e
     }()

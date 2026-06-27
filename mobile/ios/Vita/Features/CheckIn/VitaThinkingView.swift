@@ -192,13 +192,19 @@ private struct ErrorView: View {
     var body: some View {
         VStack(spacing: VitaSpacing.xl) {
             Spacer()
-            Image(systemName: "wifi.slash")
+            Image(systemName: "brain.head.profile")
                 .font(.system(size: 36))
                 .foregroundColor(VitaColor.textTertiary)
-            Text("VITA n'a pas pu se connecter.")
-                .font(VitaFont.body())
-                .foregroundColor(VitaColor.textSecondary)
-                .multilineTextAlignment(.center)
+            VStack(spacing: VitaSpacing.sm) {
+                Text("Ton check-in est enregistré.")
+                    .font(VitaFont.body())
+                    .foregroundColor(VitaColor.textPrimary)
+                    .multilineTextAlignment(.center)
+                Text("VITA n'a pas pu générer ta recommandation pour l'instant.")
+                    .font(VitaFont.caption())
+                    .foregroundColor(VitaColor.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
             HStack(spacing: VitaSpacing.md) {
                 Button("Réessayer", action: onRetry)
                     .buttonStyle(VitaPrimaryButtonStyle())

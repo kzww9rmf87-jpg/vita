@@ -41,9 +41,11 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       [body.email.toLowerCase(), passwordHash]
     )
 
+    // primary_goal est obligatoire en base. On fixe 'feel_better' à l'inscription —
+    // valeur générique qui sera remplacée par le vrai choix pendant l'onboarding.
     await query(
-      `INSERT INTO user_profiles (user_id, first_name)
-       VALUES ($1, $2)`,
+      `INSERT INTO user_profiles (user_id, first_name, primary_goal)
+       VALUES ($1, $2, 'feel_better')`,
       [user.id, body.firstName]
     )
 

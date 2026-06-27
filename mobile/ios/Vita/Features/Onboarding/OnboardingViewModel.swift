@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 enum OnboardingStep: Int, CaseIterable {
     case welcome = 0
@@ -93,7 +94,3 @@ final class OnboardingViewModel: ObservableObject {
 }
 
 struct EmptyBody: Encodable {}
-
-extension Notification.Name {
-    static let vitaOnboardingComplete = Notification.Name("vita.onboarding.complete")
-}
