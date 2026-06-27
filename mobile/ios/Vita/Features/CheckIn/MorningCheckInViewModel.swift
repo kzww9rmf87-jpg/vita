@@ -16,6 +16,7 @@ final class MorningCheckInViewModel: ObservableObject {
     // État de la soumission
     @Published var isSubmitting = false
     @Published var submitError: String?
+    @Published var alreadyCheckedIn = false
 
     // État SSE
     @Published var thinkingMessages: [String] = []
@@ -59,8 +60,12 @@ final class MorningCheckInViewModel: ObservableObject {
 
         do {
             let _: CheckInResponse = try await APIClient.shared.post("/checkin/morning", body: body)
+        } catch APIError.conflict {
+            // 409 : check-in déjà effectué aujourd'hui — pas une erreur technique
+            sseClient.disconnect()
+            showThinking = false
+            alreadyCheckedIn = true
         } catch {
-            // Le check-in a échoué — fermer SSE et signaler l'erreur
             sseClient.disconnect()
             showThinking = false
             submitError = "Le check-in n'a pas pu être enregistré. Réessaie."
@@ -108,6 +113,14 @@ final class MorningCheckInViewModel: ObservableObject {
         } catch {
             hasRecommendationError = true
         }
+    }
+
+    // Appelé quand l'utilisateur choisit "Voir ma recommandation" après un 409.
+    // Navigue vers VitaThinkingView et charge la reco existante via l'API REST.
+    func showExistingRecommendation() {
+        alreadyCheckedIn = false
+        showThinking = true
+        Task { await loadFallbackRecommendation() }
     }
 
     func disconnectSSE() {

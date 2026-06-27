@@ -89,10 +89,22 @@ struct MorningCheckInView: View {
             .navigationDestination(isPresented: $vm.showThinking) {
                 VitaThinkingView(vm: vm)
             }
+            // Erreur technique (réseau, serveur…)
             .alert("Erreur", isPresented: .constant(vm.submitError != nil)) {
                 Button("OK") { vm.submitError = nil }
             } message: {
                 Text(vm.submitError ?? "")
+            }
+            // 409 : check-in déjà fait aujourd'hui — pas une erreur, un rappel
+            .alert("Check-in déjà effectué", isPresented: $vm.alreadyCheckedIn) {
+                Button("Voir ma recommandation") {
+                    vm.showExistingRecommendation()
+                }
+                Button("Retour au dashboard", role: .cancel) {
+                    dismiss()
+                }
+            } message: {
+                Text("Tu as déjà effectué ton check-in aujourd'hui.")
             }
         }
     }
