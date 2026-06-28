@@ -557,9 +557,9 @@ private struct QuickLogBar: View {
         .padding(.horizontal, VitaSpacing.lg)
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
-            case .sleep:     QuickLogPlaceholderSheet(title: "Sommeil",   icon: "moon.fill")
-            case .activity:  QuickLogPlaceholderSheet(title: "Activité",  icon: "dumbbell.fill")
-            case .nutrition: QuickLogPlaceholderSheet(title: "Repas",     icon: "fork.knife")
+            case .sleep:     SleepQuickLogSheet(vm: SleepViewModel())
+            case .activity:  ActivityQuickLogSheet(vm: ActivityViewModel())
+            case .nutrition: MealQuickLogSheet(vm: NutritionViewModel())
             }
         }
     }
@@ -586,42 +586,3 @@ private struct QuickLogButton: View {
     }
 }
 
-private struct QuickLogPlaceholderSheet: View {
-    let title: String
-    let icon: String
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                VitaColor.background.ignoresSafeArea()
-                VStack(spacing: VitaSpacing.lg) {
-                    Spacer()
-                    Image(systemName: icon)
-                        .font(.system(size: 44, weight: .light))
-                        .foregroundColor(VitaColor.accentLight)
-                    VStack(spacing: VitaSpacing.xs) {
-                        Text(title)
-                            .font(VitaFont.headline())
-                            .foregroundColor(VitaColor.textPrimary)
-                        Text("Cette section sera disponible prochainement.")
-                            .font(VitaFont.body())
-                            .foregroundColor(VitaColor.textSecondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, VitaSpacing.xl)
-            }
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fermer") { dismiss() }
-                        .foregroundColor(VitaColor.textSecondary)
-                }
-            }
-        }
-        .presentationDetents([.medium])
-    }
-}
