@@ -18,6 +18,12 @@ from chat import handle_chat_message
 from journal import analyze_and_respond
 from memory.reflection import generate_weekly_reflection
 from daily_insight import generate_daily_insight
+from first_encounter import (
+    get_session_state,
+    start_first_encounter,
+    send_message as send_first_encounter_message,
+    apply_portrait_correction,
+)
 
 settings = get_settings()
 
@@ -180,6 +186,72 @@ async def weekly_reflection(
     try:
         result = await generate_weekly_reflection(req.user_id, req.week_start)
         return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class FirstEncounterStartRequest(BaseModel):
+    user_id: str
+
+
+class FirstEncounterMessageRequest(BaseModel):
+    user_id: str
+    content: str
+
+
+class FirstEncounterCorrectionRequest(BaseModel):
+    user_id: str
+    correction: str
+
+
+@app.get("/first-encounter/session/{user_id}")
+async def first_encounter_session(
+    user_id: str,
+    _: bool = Depends(verify_service_token),
+):
+    """Retourne l'état courant de la session Première Rencontre."""
+    try:
+        return await get_session_state(user_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/first-encounter/start")
+async def first_encounter_start(
+    req: FirstEncounterStartRequest,
+    _: bool = Depends(verify_service_token),
+):
+    """Démarre la Première Rencontre et retourne le message d'ouverture."""
+    try:
+        return await start_first_encounter(req.user_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/first-encounter/message")
+async def first_encounter_message(
+    req: FirstEncounterMessageRequest,
+    _: bool = Depends(verify_service_token),
+):
+    """Traite un message utilisateur et retourne la réponse VITA."""
+    try:
+        return await send_first_encounter_message(req.user_id, req.content)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/first-encounter/correct")
+async def first_encounter_correct(
+    req: FirstEncounterCorrectionRequest,
+    _: bool = Depends(verify_service_token),
+):
+    """Applique une correction au portrait et retourne le portrait révisé."""
+    try:
+        return await apply_portrait_correction(req.user_id, req.correction)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -218,6 +218,96 @@ export async function requestDailyInsight(
   )
 }
 
+// ── Première Rencontre ────────────────────────────────────────────────────────
+
+export interface FirstEncounterExchange {
+  role: 'vita' | 'user'
+  content: string
+  topic: string | null
+  created_at: string
+}
+
+export interface FirstEncounterSessionState {
+  status: 'not_started' | 'in_progress' | 'completed'
+  topic_index?: number
+  exchange_count?: number
+  exchanges?: FirstEncounterExchange[]
+  portrait?: string
+  completed_at?: string
+  already_started?: boolean
+  vita_opening?: string
+  session_id?: string
+}
+
+export interface FirstEncounterMessageResponse {
+  vita_response: string
+  topic: string
+  exchange_number: number
+  is_complete: boolean
+  portrait: string | null
+}
+
+export interface FirstEncounterCorrectionResponse {
+  portrait: string
+}
+
+export async function getFirstEncounterSession(
+  userId: string
+): Promise<FirstEncounterSessionState> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+
+  let response: Response
+  try {
+    response = await fetch(`${AI_ENGINE_URL}/first-encounter/session/${encodeURIComponent(userId)}`, {
+      method: 'GET',
+      headers: { 'X-Service-Token': AI_SERVICE_TOKEN },
+      signal: controller.signal,
+    })
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new AIEngineError(504, 'AI_ENGINE_TIMEOUT', `AI engine timed out after ${TIMEOUT_MS}ms`)
+    }
+    throw new AIEngineError(502, 'AI_ENGINE_UNREACHABLE', 'AI engine is unreachable')
+  } finally {
+    clearTimeout(timer)
+  }
+
+  if (!response.ok) {
+    throw new AIEngineError(response.status, 'AI_ENGINE_ERROR', `AI engine returned ${response.status}`)
+  }
+  return response.json() as Promise<FirstEncounterSessionState>
+}
+
+export async function startFirstEncounter(
+  userId: string
+): Promise<FirstEncounterSessionState> {
+  return callAIEngine<{ user_id: string }, FirstEncounterSessionState>(
+    '/first-encounter/start',
+    { user_id: userId }
+  )
+}
+
+export async function sendFirstEncounterMessage(
+  userId: string,
+  content: string
+): Promise<FirstEncounterMessageResponse> {
+  return callAIEngine<{ user_id: string; content: string }, FirstEncounterMessageResponse>(
+    '/first-encounter/message',
+    { user_id: userId, content }
+  )
+}
+
+export async function correctFirstEncounterPortrait(
+  userId: string,
+  correction: string
+): Promise<FirstEncounterCorrectionResponse> {
+  return callAIEngine<{ user_id: string; correction: string }, FirstEncounterCorrectionResponse>(
+    '/first-encounter/correct',
+    { user_id: userId, correction }
+  )
+}
+
 export async function analyzeJournalEntry(
   userId: string,
   content: string,

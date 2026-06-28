@@ -13,6 +13,8 @@ struct HomeView: View {
 
                         HeaderSection(firstName: vm.firstName)
 
+                        FirstEncounterCard()
+
                         ClimateEntryCard()
 
                         if let voice = vm.vitaVoice {
@@ -477,6 +479,64 @@ private struct MemoryInspectorEntryCard: View {
     }
 }
 #endif
+
+// MARK: — Première Rencontre (carte d'invitation)
+
+private struct FirstEncounterCard: View {
+    @State private var isComplete = UserDefaults.standard.bool(forKey: "vita.first_encounter.complete")
+    @State private var showEncounter = false
+
+    var body: some View {
+        Group {
+            if !isComplete {
+                Button {
+                    showEncounter = true
+                } label: {
+                    HStack(spacing: VitaSpacing.md) {
+                        ZStack {
+                            Circle()
+                                .fill(VitaColor.accent.opacity(0.10))
+                                .frame(width: 40, height: 40)
+                            Image(systemName: "person.and.arrow.left.and.arrow.right")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(VitaColor.accent)
+                        }
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Première rencontre")
+                                .font(VitaFont.headline())
+                                .foregroundColor(VitaColor.textPrimary)
+                            Text("VITA aimerait te connaître mieux")
+                                .font(VitaFont.caption())
+                                .foregroundColor(VitaColor.textSecondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(VitaColor.textTertiary)
+                    }
+                    .padding(VitaSpacing.md)
+                    .vitaCard()
+                }
+                .padding(.horizontal, VitaSpacing.lg)
+            }
+        }
+        .fullScreenCover(isPresented: $showEncounter) {
+            NavigationStack {
+                FirstEncounterView()
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Plus tard") { showEncounter = false }
+                                .foregroundColor(VitaColor.textSecondary)
+                        }
+                    }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .vitaFirstEncounterComplete)) { _ in
+            isComplete = true
+            showEncounter = false
+        }
+    }
+}
 
 // MARK: — Log rapide
 
