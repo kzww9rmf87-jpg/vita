@@ -40,7 +40,7 @@ export const activityRoutes: FastifyPluginAsync = async (app) => {
     const userId = (req.user as { sub: string }).sub
     const body = ActivitySessionSchema.parse(req.body)
 
-    const [session] = await query<{ id: string }>(
+    const rows_session = await query<{ id: string }>(
       `INSERT INTO activity_sessions
          (user_id, date, started_at, ended_at, activity_name, duration_minutes,
           calories_burned, hr_avg_bpm, hr_max_bpm, rpe, distance_meters,
@@ -66,7 +66,7 @@ export const activityRoutes: FastifyPluginAsync = async (app) => {
               duration_sec, rest_sec, tempo, tut_sec, rpe, notes)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
           [
-            session.id, set.exerciseName, set.muscleGroups ?? [],
+            rows_session[0]!.id, set.exerciseName, set.muscleGroups ?? [],
             set.setNumber, set.reps ?? null, set.weightKg ?? null,
             set.durationSec ?? null, set.restSec ?? null,
             set.tempo ?? null, set.tutSec ?? null,
@@ -76,7 +76,7 @@ export const activityRoutes: FastifyPluginAsync = async (app) => {
       }
     }
 
-    return reply.status(201).send({ id: session.id })
+    return reply.status(201).send({ id: rows_session[0]!.id })
   })
 
   app.get('/history', async (req, reply) => {

@@ -131,14 +131,39 @@ private struct RecommendationCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: VitaSpacing.md) {
-            Label("Pour aujourd'hui", systemImage: actionIcon)
+            Label("Ce que VITA observe", systemImage: actionIcon)
                 .font(VitaFont.caption())
                 .foregroundColor(VitaColor.accent)
 
             Text(recommendation.content)
-                .font(VitaFont.body(17))
+                .font(VitaFont.body(16))
                 .foregroundColor(VitaColor.textPrimary)
                 .lineSpacing(4)
+
+            if let actions = recommendation.actions, !actions.isEmpty {
+                Divider()
+                    .background(VitaColor.neutral.opacity(0.2))
+
+                VStack(alignment: .leading, spacing: VitaSpacing.xs) {
+                    Text("Pour aujourd'hui")
+                        .font(VitaFont.caption(11))
+                        .foregroundColor(VitaColor.textSecondary)
+                        .padding(.bottom, 2)
+
+                    ForEach(Array(actions.prefix(3).enumerated()), id: \.offset) { index, action in
+                        HStack(alignment: .top, spacing: VitaSpacing.sm) {
+                            Text("\(index + 1)")
+                                .font(VitaFont.mono(12))
+                                .foregroundColor(VitaColor.accent)
+                                .frame(width: 16, alignment: .leading)
+                            Text(action)
+                                .font(VitaFont.body(14))
+                                .foregroundColor(VitaColor.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
 
             Button {
                 withAnimation(.vitaFast) { isDone = true }

@@ -82,6 +82,7 @@ final class MorningCheckInViewModel: ObservableObject {
                 let content: String?
                 let actionType: String?
                 let agentSource: String?
+                let actions: [String]?
             }
             let resp: FallbackResponse = try await APIClient.shared.get("/dashboard/recommendation")
             if resp.ready, let content = resp.content {
@@ -91,10 +92,10 @@ final class MorningCheckInViewModel: ObservableObject {
                     actionType: resp.actionType ?? "do",
                     agentSource: resp.agentSource ?? "vita",
                     confidence: 0.8,
-                    date: isoToday()
+                    date: isoToday(),
+                    actions: resp.actions ?? []
                 )
             } else {
-                // L'IA génère toujours — attendre 3s et réessayer une fois
                 try await Task.sleep(for: .seconds(3))
                 let retry: FallbackResponse = try await APIClient.shared.get("/dashboard/recommendation")
                 if retry.ready, let content = retry.content {
@@ -104,7 +105,8 @@ final class MorningCheckInViewModel: ObservableObject {
                         actionType: retry.actionType ?? "do",
                         agentSource: retry.agentSource ?? "vita",
                         confidence: 0.8,
-                        date: isoToday()
+                        date: isoToday(),
+                        actions: retry.actions ?? []
                     )
                 } else {
                     hasRecommendationError = true
@@ -152,7 +154,7 @@ final class MorningCheckInViewModel: ObservableObject {
             withAnimation(.vitaDefault) {
                 thinkingMessages.append(message)
             }
-        case .recommendation(let content, let actionType, let agentSource):
+        case .recommendation(let content, let actionType, let agentSource, let actions):
             sseClient.disconnect()
             withAnimation(.vitaDefault) {
                 recommendation = DailyRecommendation(
@@ -161,7 +163,8 @@ final class MorningCheckInViewModel: ObservableObject {
                     actionType: actionType,
                     agentSource: agentSource,
                     confidence: 0.85,
-                    date: isoToday()
+                    date: isoToday(),
+                    actions: actions
                 )
             }
         case .error:
@@ -199,4 +202,29 @@ struct DailyRecommendation: Codable, Identifiable {
     let agentSource: String
     let confidence: Double
     let date: String
+    let actions: [String]
+
+    // init explicite pour les sites de construction (SSE, fallback REST)
+    init(content: String, contentShort: String?, actionType: String,
+         agentSource: String, confidence: Double, date: String, actions: [String] = []) {
+        self.content = content
+        self.contentShort = contentShort
+        self.actionType = actionType
+        self.agentSource = agentSource
+        self.confidence = confidence
+        self.date = date
+        self.actions = actions
+    }
+
+    // Décodage défensif : actions absentes (anciennes recos) → tableau vide
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        content      = try c.decode(String.self,   forKey: .content)
+        contentShort = try c.decodeIfPresent(String.self, forKey: .contentShort)
+        actionType   = try c.decode(String.self,   forKey: .actionType)
+        agentSource  = try c.decode(String.self,   forKey: .agentSource)
+        confidence   = try c.decode(Double.self,   forKey: .confidence)
+        date         = try c.decode(String.self,   forKey: .date)
+        actions      = (try? c.decodeIfPresent([String].self, forKey: .actions)) ?? []
+    }
 }

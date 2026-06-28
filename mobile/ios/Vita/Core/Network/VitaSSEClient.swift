@@ -4,7 +4,7 @@ import Foundation
 
 enum VitaSSEEvent: Equatable {
     case thinking(message: String)
-    case recommendation(content: String, actionType: String, agentSource: String)
+    case recommendation(content: String, actionType: String, agentSource: String, actions: [String])
     case error(code: String)
 }
 
@@ -18,6 +18,7 @@ private struct RecommendationPayload: Decodable {
     let content: String
     let actionType: String
     let agentSource: String
+    let actions: [String]?
 }
 
 private struct ErrorPayload: Decodable {
@@ -100,7 +101,8 @@ final class VitaSSEClient: ObservableObject {
                 lastEvent = .recommendation(
                     content: payload.content,
                     actionType: payload.actionType,
-                    agentSource: payload.agentSource
+                    agentSource: payload.agentSource,
+                    actions: payload.actions ?? []
                 )
             }
         case "error":

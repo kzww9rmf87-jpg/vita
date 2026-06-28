@@ -161,8 +161,8 @@ async def save_recommendation(state: OrchestratorState) -> dict:
         await conn.execute(
             """INSERT INTO ai_recommendations
                  (user_id, date, agent_source, content, content_short,
-                  action_type, priority, reasoning, context_json)
-               VALUES ($1, $2, $3, $4, $5, $6, 1, $7, $8)
+                  action_type, priority, reasoning, context_json, actions_json)
+               VALUES ($1, $2, $3, $4, $5, $6, 1, $7, $8, $9)
                ON CONFLICT DO NOTHING""",
             state.user_context.user_id,
             state.user_context.date,
@@ -172,6 +172,7 @@ async def save_recommendation(state: OrchestratorState) -> dict:
             reco.action_type,
             json.dumps(reco.reasoning),
             json.dumps({"confidence": reco.confidence}),
+            json.dumps(reco.actions),
         )
 
     return {}
@@ -233,4 +234,5 @@ async def generate_daily_recommendation(
         "action_type":   reco.action_type,
         "agent_source":  reco.agent_source,
         "confidence":    reco.confidence,
+        "actions":       reco.actions,
     }

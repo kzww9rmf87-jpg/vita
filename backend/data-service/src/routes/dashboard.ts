@@ -10,43 +10,43 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
     const [sleep, activity, nutrition, checkin, recommendation] = await Promise.all([
       queryOne(
         `SELECT
-           AVG(duration_minutes)::NUMERIC(5,1) AS avg_duration,
-           AVG(quality_score)::NUMERIC(3,2) AS avg_quality,
-           COUNT(*) AS days_logged
+           AVG(duration_minutes)::FLOAT8 AS avg_duration,
+           AVG(quality_score)::FLOAT8    AS avg_quality,
+           COUNT(*)::INT                 AS days_logged
          FROM sleep_entries
          WHERE user_id = $1 AND date >= CURRENT_DATE - 7`,
         [userId]
       ),
       queryOne(
         `SELECT
-           COUNT(*) AS sessions,
-           SUM(duration_minutes) AS total_minutes,
-           AVG(rpe)::NUMERIC(3,1) AS avg_rpe
+           COUNT(*)::INT             AS sessions,
+           SUM(duration_minutes)::INT AS total_minutes,
+           AVG(rpe)::FLOAT8          AS avg_rpe
          FROM activity_sessions
          WHERE user_id = $1 AND date >= CURRENT_DATE - 7`,
         [userId]
       ),
       queryOne(
         `SELECT
-           AVG(calories)::INT AS avg_calories,
-           AVG(protein_g)::NUMERIC(5,1) AS avg_protein,
-           AVG(adherence_score)::NUMERIC(3,2) AS avg_adherence
+           AVG(calories)::INT           AS avg_calories,
+           AVG(protein_g)::FLOAT8       AS avg_protein,
+           AVG(adherence_score)::FLOAT8 AS avg_adherence
          FROM nutrition_daily
          WHERE user_id = $1 AND date >= CURRENT_DATE - 7`,
         [userId]
       ),
       queryOne(
         `SELECT
-           AVG(energy)::NUMERIC(3,1) AS avg_energy,
-           AVG(mood)::NUMERIC(3,1) AS avg_mood,
-           AVG(stress)::NUMERIC(3,1) AS avg_stress,
-           COUNT(DISTINCT date) AS checkin_days
+           AVG(energy)::FLOAT8          AS avg_energy,
+           AVG(mood)::FLOAT8            AS avg_mood,
+           AVG(stress)::FLOAT8          AS avg_stress,
+           COUNT(DISTINCT date)::INT    AS checkin_days
          FROM daily_checkins
          WHERE user_id = $1 AND date >= CURRENT_DATE - 7 AND type = 'morning'`,
         [userId]
       ),
       queryOne(
-        `SELECT content, action_type, created_at
+        `SELECT content, action_type, actions_json AS actions, created_at
          FROM ai_recommendations
          WHERE user_id = $1 AND date = CURRENT_DATE AND dismissed = false
          ORDER BY created_at DESC LIMIT 1`,
@@ -111,9 +111,10 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
       content: string
       action_type: string | null
       agent_source: string
+      actions: string[] | null
       created_at: string
     }>(
-      `SELECT content, action_type, agent_source, created_at
+      `SELECT content, action_type, agent_source, actions_json AS actions, created_at
        FROM ai_recommendations
        WHERE user_id = $1 AND date = CURRENT_DATE AND dismissed = false
        ORDER BY created_at DESC LIMIT 1`,
@@ -121,7 +122,6 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
     )
 
     if (!recommendation) {
-      // Pas encore générée (check-in récent ou IA en cours)
       return reply.send({ ready: false })
     }
 
@@ -130,6 +130,7 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
       content: recommendation.content,
       actionType: recommendation.action_type,
       agentSource: recommendation.agent_source,
+      actions: recommendation.actions ?? [],
       createdAt: recommendation.created_at,
     })
   })

@@ -28,7 +28,7 @@ export const sleepRoutes: FastifyPluginAsync = async (app) => {
       durationMinutes = Math.round(diff / 60000)
     }
 
-    const [entry] = await query<{ id: string }>(
+    const rows_entry = await query<{ id: string }>(
       `INSERT INTO sleep_entries
          (user_id, date, bedtime, wake_time, duration_minutes, quality_score,
           awakenings, energy_on_wake, hrv_ms, rhr_bpm, nap_duration_min, source)
@@ -55,7 +55,7 @@ export const sleepRoutes: FastifyPluginAsync = async (app) => {
       ]
     )
 
-    return reply.status(201).send({ id: entry.id })
+    return reply.status(201).send({ id: rows_entry[0]!.id })
   })
 
   app.get('/history', async (req, reply) => {

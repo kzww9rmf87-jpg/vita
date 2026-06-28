@@ -50,13 +50,16 @@ async function generateAndPushRecommendation(
     // Persiste la recommandation du jour (ON CONFLICT : met à jour si déjà générée)
     await query(
       `INSERT INTO ai_recommendations
-         (user_id, date, agent_source, content, action_type, priority)
-       VALUES ($1, CURRENT_DATE, $2, $3, $4, 1)
+         (user_id, date, agent_source, content, action_type, priority, actions_json)
+       VALUES ($1, CURRENT_DATE, $2, $3, $4, 1, $5)
        ON CONFLICT (user_id, date) DO UPDATE SET
-         content     = EXCLUDED.content,
+         content      = EXCLUDED.content,
          agent_source = EXCLUDED.agent_source,
-         action_type = EXCLUDED.action_type`,
-      [userId, recommendation.agent_source, recommendation.content, recommendation.action_type ?? null]
+         action_type  = EXCLUDED.action_type,
+         actions_json = EXCLUDED.actions_json`,
+      [userId, recommendation.agent_source, recommendation.content,
+       recommendation.action_type ?? null,
+       JSON.stringify(recommendation.actions ?? [])]
     )
 
     // Pousse la recommandation vers l'iOS via SSE
@@ -65,6 +68,7 @@ async function generateAndPushRecommendation(
       actionType: recommendation.action_type,
       agentSource: recommendation.agent_source,
       confidence: recommendation.confidence,
+      actions: recommendation.actions ?? [],
     })
 
     log.info({ userId, agentSource: recommendation.agent_source }, 'Recommendation generated and pushed')
@@ -112,7 +116,7 @@ export const checkinRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(409).send({ error: 'MORNING_CHECKIN_EXISTS' })
     }
 
-    const [checkin] = await query<{ id: string }>(
+    const rows_checkin = await query<{ id: string }>(
       `INSERT INTO daily_checkins
          (user_id, date, type, energy, mood, stress, pain_areas, pain_intensity, special_event, duration_sec)
        VALUES ($1, $2, 'morning', $3, $4, $5, $6, $7, $8, $9)
@@ -130,7 +134,7 @@ export const checkinRoutes: FastifyPluginAsync = async (app) => {
     // Déclenche la génération en arrière-plan — ne bloque pas cette réponse
     scheduleRecommendation(userId, app.log)
 
-    return reply.status(201).send({ id: checkin.id, date: today })
+    return reply.status(201).send({ id: rows_checkin[0]!.id, date: today })
   })
 
   app.post('/evening', async (req, reply) => {
@@ -138,7 +142,7 @@ export const checkinRoutes: FastifyPluginAsync = async (app) => {
     const body = EveningCheckinSchema.parse(req.body)
     const today = new Date().toISOString().split('T')[0]
 
-    const [checkin] = await query<{ id: string }>(
+    const rows_checkin = await query<{ id: string }>(
       `INSERT INTO daily_checkins
          (user_id, date, type, energy, mood, motivation, concentration, notes, duration_sec)
        VALUES ($1, $2, 'evening', $3, $4, $5, $6, $7, $8)
@@ -152,7 +156,7 @@ export const checkinRoutes: FastifyPluginAsync = async (app) => {
       ]
     )
 
-    return reply.status(201).send({ id: checkin.id, date: today })
+    return reply.status(201).send({ id: rows_checkin[0]!.id, date: today })
   })
 
   app.get('/today', async (req, reply) => {

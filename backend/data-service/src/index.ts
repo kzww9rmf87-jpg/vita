@@ -21,7 +21,7 @@ async function main() {
   await app.register(jwt, { secret: process.env.JWT_SECRET! })
 
   app.addHook('onRequest', async (req, reply) => {
-    if (req.routeOptions.config?.public) return
+    if ((req.routeOptions.config as unknown as Record<string, unknown>)?.['public']) return
     try {
       await req.jwtVerify()
     } catch {

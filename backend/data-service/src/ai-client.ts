@@ -37,6 +37,7 @@ export interface RecommendResponse {
   action_type: string
   agent_source: string
   confidence: number
+  actions: string[]
 }
 
 interface ChatRequest {

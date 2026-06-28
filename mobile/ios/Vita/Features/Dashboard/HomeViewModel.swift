@@ -134,6 +134,7 @@ struct WeekDashboard: Codable {
 struct WeekReco: Codable {
     let content: String
     let actionType: String?
+    let actions: [String]?
     let createdAt: String?
 }
 

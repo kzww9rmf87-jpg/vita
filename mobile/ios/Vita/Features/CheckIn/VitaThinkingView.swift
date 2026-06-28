@@ -141,7 +141,7 @@ private struct RecommendationReadyView: View {
                         .foregroundColor(VitaColor.textSecondary)
                 }
 
-                // Texte principal
+                // Observation
                 Text(recommendation.content)
                     .font(VitaFont.body(18))
                     .foregroundColor(VitaColor.textPrimary)
@@ -154,9 +154,15 @@ private struct RecommendationReadyView: View {
                     .font(VitaFont.caption(12))
                     .foregroundColor(VitaColor.textTertiary)
 
-                Spacer(minLength: VitaSpacing.xxl)
+                // 3 actions concrètes
+                if !recommendation.actions.isEmpty {
+                    ActionsList(actions: recommendation.actions)
+                        .padding(.horizontal, VitaSpacing.lg)
+                }
 
-                // Actions
+                Spacer(minLength: VitaSpacing.lg)
+
+                // Boutons
                 VStack(spacing: VitaSpacing.sm) {
                     Button {
                         withAnimation(.vitaFast) { isDone = true }
@@ -166,7 +172,7 @@ private struct RecommendationReadyView: View {
                         }
                     } label: {
                         Label(
-                            isDone ? "Noté !" : "J'ai lu",
+                            isDone ? "Noté !" : "J'ai compris",
                             systemImage: isDone ? "checkmark" : "hand.thumbsup"
                         )
                     }
@@ -180,6 +186,41 @@ private struct RecommendationReadyView: View {
                 .padding(.bottom, VitaSpacing.xl)
             }
         }
+    }
+}
+
+// MARK: — Liste des 3 actions concrètes
+
+private struct ActionsList: View {
+    let actions: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: VitaSpacing.sm) {
+            Text("Pour aujourd'hui")
+                .font(VitaFont.caption())
+                .foregroundColor(VitaColor.textSecondary)
+                .padding(.bottom, 2)
+
+            ForEach(Array(actions.prefix(3).enumerated()), id: \.offset) { index, action in
+                HStack(alignment: .top, spacing: VitaSpacing.sm) {
+                    Text("\(index + 1)")
+                        .font(VitaFont.mono(13))
+                        .foregroundColor(VitaColor.accent)
+                        .frame(width: 18, alignment: .leading)
+                    Text(action)
+                        .font(VitaFont.body(15))
+                        .foregroundColor(VitaColor.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(VitaSpacing.md)
+        .background(VitaColor.surface)
+        .clipShape(RoundedRectangle(cornerRadius: VitaRadius.lg))
+        .overlay(
+            RoundedRectangle(cornerRadius: VitaRadius.lg)
+                .stroke(VitaColor.neutral.opacity(0.15), lineWidth: 1)
+        )
     }
 }
 

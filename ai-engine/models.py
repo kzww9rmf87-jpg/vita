@@ -20,6 +20,7 @@ class Recommendation(BaseModel):
     agent_source: str
     reasoning: dict = Field(default_factory=dict)
     confidence: float
+    actions: list[str] = Field(default_factory=list)
 
 
 class UserContext(BaseModel):
