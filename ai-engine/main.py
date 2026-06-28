@@ -24,6 +24,7 @@ from first_encounter import (
     send_message as send_first_encounter_message,
     apply_portrait_correction,
 )
+from meal_planner import MealPlanInput, MealPlanner
 
 settings = get_settings()
 
@@ -254,6 +255,20 @@ async def first_encounter_correct(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/meal-planner/distribute")
+async def meal_planner_distribute(
+    req: MealPlanInput,
+    _: bool = Depends(verify_service_token),
+):
+    """
+    Répartit les recettes choisies sur 14 créneaux (7 jours × lunch/dinner).
+    Aucune analyse nutritionnelle — pure logique d'organisation.
+    """
+    planner = MealPlanner()
+    distribution = planner.distribute(req.recipes)
+    return [item.model_dump() for item in distribution]
 
 
 if __name__ == "__main__":

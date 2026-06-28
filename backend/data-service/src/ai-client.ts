@@ -308,6 +308,43 @@ export async function correctFirstEncounterPortrait(
   )
 }
 
+// ── Meal Planner ──────────────────────────────────────────────────────────────
+
+interface MealDistributionRequest {
+  user_id: string
+  recipes: Array<{
+    id: string
+    name: string
+    servings: number
+    prep_minutes: number | null
+    cook_minutes: number | null
+  }>
+}
+
+export interface MealDistributionItem {
+  recipe_id: string
+  recipe_name: string
+  day_of_week: number
+  meal_slot: 'lunch' | 'dinner'
+  portions: number
+}
+
+export async function requestMealDistribution(
+  userId: string,
+  recipes: Array<{
+    id: string
+    name: string
+    servings: number
+    prep_minutes: number | null
+    cook_minutes: number | null
+  }>
+): Promise<MealDistributionItem[]> {
+  return callAIEngine<MealDistributionRequest, MealDistributionItem[]>(
+    '/meal-planner/distribute',
+    { user_id: userId, recipes }
+  )
+}
+
 export async function analyzeJournalEntry(
   userId: string,
   content: string,

@@ -16,6 +16,8 @@ import { lifeStoryRoutes } from './routes/life-story.js'
 import { reflectionRoutes } from './routes/reflection.js'
 import { dailyInsightRoutes } from './routes/daily-insight.js'
 import { firstEncounterRoutes } from './routes/first-encounter.js'
+import { mealPlanRoutes } from './routes/meal-plan.js'
+import { pantryRoutes } from './routes/pantry.js'
 import { debugRoutes } from './routes/debug.js'
 
 async function main() {
@@ -50,6 +52,8 @@ async function main() {
   await app.register(reflectionRoutes, { prefix: '/reflection' })
   await app.register(dailyInsightRoutes, { prefix: '/daily-insight' })
   await app.register(firstEncounterRoutes, { prefix: '/first-encounter' })
+  await app.register(mealPlanRoutes, { prefix: '/meal-plans' })
+  await app.register(pantryRoutes, { prefix: '/pantry' })
 
   // Routes de débogage — absentes des déploiements production
   if (process.env.NODE_ENV !== 'production') {

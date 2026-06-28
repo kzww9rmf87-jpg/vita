@@ -20,6 +20,14 @@
 		546928336F57440CB02909D4 /* NutritionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2183B495694AF7A8638E42 /* NutritionViewModel.swift */; };
 		8DF736CB892B4887A60AE038 /* NutritionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21FE795C114B4D1CBC7B20CE /* NutritionView.swift */; };
 		A5079EF2D74947AC9249BA6A /* EnergyHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62C4C32B28694681B48B08F0 /* EnergyHomeView.swift */; };
+		7C941CE5656249BA8C247D4C /* NutritionPlannerHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BD5BB454EE74F58AFB1ECDA /* NutritionPlannerHomeView.swift */; };
+		2836900A68BC4FD4B5E301EA /* RecipeLibraryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6350BD0A83A845FC8747E57B /* RecipeLibraryViewModel.swift */; };
+		D52969C306A641FC8A193466 /* RecipeLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59ADDE75031341519CED0CCA /* RecipeLibraryView.swift */; };
+		E9A85D1EC0804EAA8D3E84FC /* MealPlannerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F52B6EC9859C4CD5B824A484 /* MealPlannerViewModel.swift */; };
+		64207E506AAF472398BD401A /* MealPlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 533542045D3B4E38A2762ACC /* MealPlannerView.swift */; };
+		7EB24551903944098ED9A690 /* ShoppingListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28914C33453D4D5393FB5AC9 /* ShoppingListViewModel.swift */; };
+		43793E3B01304C33AC38B3D9 /* ShoppingListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E0CEA4281914BD1BCC74C2A /* ShoppingListView.swift */; };
+		95F15CC9BABF488497732C10 /* PantryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B70CC3DDAB64EC791F4533D /* PantryView.swift */; };
 		42AEA17F68DD1350A12F64FB /* FirstEncounterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8E79124CCC5F577710E6BE /* FirstEncounterView.swift */; };
 		4BCD52C23F6E76BAEB3398C5 /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD220E309DBB0520E0D39AE /* TimelineView.swift */; };
 		5895DAC5B12EC6146DA8C5E4 /* VitaTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 181A207FA8D466942D37653E /* VitaTheme.swift */; };
@@ -58,6 +66,14 @@
 		FC2183B495694AF7A8638E42 /* NutritionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionViewModel.swift; sourceTree = "<group>"; };
 		21FE795C114B4D1CBC7B20CE /* NutritionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionView.swift; sourceTree = "<group>"; };
 		62C4C32B28694681B48B08F0 /* EnergyHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyHomeView.swift; sourceTree = "<group>"; };
+		6BD5BB454EE74F58AFB1ECDA /* NutritionPlannerHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionPlannerHomeView.swift; sourceTree = "<group>"; };
+		6350BD0A83A845FC8747E57B /* RecipeLibraryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeLibraryViewModel.swift; sourceTree = "<group>"; };
+		59ADDE75031341519CED0CCA /* RecipeLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeLibraryView.swift; sourceTree = "<group>"; };
+		F52B6EC9859C4CD5B824A484 /* MealPlannerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealPlannerViewModel.swift; sourceTree = "<group>"; };
+		533542045D3B4E38A2762ACC /* MealPlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealPlannerView.swift; sourceTree = "<group>"; };
+		28914C33453D4D5393FB5AC9 /* ShoppingListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingListViewModel.swift; sourceTree = "<group>"; };
+		6E0CEA4281914BD1BCC74C2A /* ShoppingListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingListView.swift; sourceTree = "<group>"; };
+		2B70CC3DDAB64EC791F4533D /* PantryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PantryView.swift; sourceTree = "<group>"; };
 		0C8E79124CCC5F577710E6BE /* FirstEncounterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstEncounterView.swift; sourceTree = "<group>"; };
 		123ABD3E2B388DFD5CA6D9A8 /* MorningCheckInViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningCheckInViewModel.swift; sourceTree = "<group>"; };
 		12825CE40629F3FF9196B5F8 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
@@ -240,6 +256,7 @@
 				E90B5032D6724874B095BBE9 /* Activity */,
 				4B78D45E81114D8AB54CFA22 /* Nutrition */,
 				55DA594108AC4AC6ACEE27FB /* Energy */,
+				B75838DC48904B2D8847F61B /* NutritionPlanner */,
 				B46F4C27C8A044BFC51F5426 /* Auth */,
 				CD4E5EF7CEBB20F4991138C6 /* Chat */,
 				6ECA9AD4A02A719EEA006959 /* CheckIn */,
@@ -326,7 +343,23 @@
 			path = Energy;
 			sourceTree = "<group>";
 		};
-/* End PBXGroup section */
+
+		B75838DC48904B2D8847F61B /* NutritionPlanner */ = {
+			isa = PBXGroup;
+			children = (
+				6BD5BB454EE74F58AFB1ECDA /* NutritionPlannerHomeView.swift */,
+				6350BD0A83A845FC8747E57B /* RecipeLibraryViewModel.swift */,
+				59ADDE75031341519CED0CCA /* RecipeLibraryView.swift */,
+				F52B6EC9859C4CD5B824A484 /* MealPlannerViewModel.swift */,
+				533542045D3B4E38A2762ACC /* MealPlannerView.swift */,
+				28914C33453D4D5393FB5AC9 /* ShoppingListViewModel.swift */,
+				6E0CEA4281914BD1BCC74C2A /* ShoppingListView.swift */,
+				2B70CC3DDAB64EC791F4533D /* PantryView.swift */,
+			);
+			path = NutritionPlanner;
+			sourceTree = "<group>";
+		};
+		/* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
 		BFA1D49EE4F57CEBC9F0A793 /* Vita */ = {
@@ -413,6 +446,14 @@
 				546928336F57440CB02909D4 /* NutritionViewModel.swift in Sources */,
 				8DF736CB892B4887A60AE038 /* NutritionView.swift in Sources */,
 				A5079EF2D74947AC9249BA6A /* EnergyHomeView.swift in Sources */,
+				7C941CE5656249BA8C247D4C /* NutritionPlannerHomeView.swift in Sources */,
+				2836900A68BC4FD4B5E301EA /* RecipeLibraryViewModel.swift in Sources */,
+				D52969C306A641FC8A193466 /* RecipeLibraryView.swift in Sources */,
+				E9A85D1EC0804EAA8D3E84FC /* MealPlannerViewModel.swift in Sources */,
+				64207E506AAF472398BD401A /* MealPlannerView.swift in Sources */,
+				7EB24551903944098ED9A690 /* ShoppingListViewModel.swift in Sources */,
+				43793E3B01304C33AC38B3D9 /* ShoppingListView.swift in Sources */,
+				95F15CC9BABF488497732C10 /* PantryView.swift in Sources */,
 				42AEA17F68DD1350A12F64FB /* FirstEncounterView.swift in Sources */,
 				E45C95BB9FD0A88912930E24 /* FirstEncounterViewModel.swift in Sources */,
 				3CD5BF5DEF2A011E9A310D94 /* HealthKitManager.swift in Sources */,
