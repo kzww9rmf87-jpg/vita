@@ -22,7 +22,9 @@
 		82BF423F162A9C6E67DF193C /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12825CE40629F3FF9196B5F8 /* OnboardingViewModel.swift */; };
 		A5A4F93A47CF57898F1C026E /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9B769B29929C2C4C128B22 /* ChatViewModel.swift */; };
 		AB0B46F6E2C3EFAE58C8CD78 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E580F3B22C6F19B7F3E4AAAF /* OnboardingView.swift */; };
+		D6C796AC271B2BD0D827AC37 /* ConversationalOnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9ED01604AFEC6067B0D9BC5 /* ConversationalOnboardingViewModel.swift */; };
 		E7E56C872988CD7B10D50F65 /* VitaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D10097BD2AC95442EA4DFB8 /* VitaApp.swift */; };
+		F9F180C6BA989D3E19558D31 /* ConversationalOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0D78A1D1CD444950D3ABA35 /* ConversationalOnboardingView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,12 +39,14 @@
 		81FB74AB266109F09ED7EF4A /* Vita.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Vita.entitlements; sourceTree = "<group>"; };
 		9D10097BD2AC95442EA4DFB8 /* VitaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitaApp.swift; sourceTree = "<group>"; };
 		AFA77C00B641F7F9731F631E /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
+		B0D78A1D1CD444950D3ABA35 /* ConversationalOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationalOnboardingView.swift; sourceTree = "<group>"; };
 		BBC364DE130BF10D5BD26A68 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		CA9B769B29929C2C4C128B22 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		E580F3B22C6F19B7F3E4AAAF /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		ED61E1FA9BE58DEF93ABC0B2 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		F7A8F071818DB110F6CEC267 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		F8DFCA0EE382E90591DFA833 /* MorningCheckInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningCheckInView.swift; sourceTree = "<group>"; };
+		F9ED01604AFEC6067B0D9BC5 /* ConversationalOnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationalOnboardingViewModel.swift; sourceTree = "<group>"; };
 		FB06BA188D7C9513377C34EE /* VitaSSEClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitaSSEClient.swift; sourceTree = "<group>"; };
 		FE42AF6C9B00B3B8D316451B /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -85,6 +89,8 @@
 		72EE5E42240F5588CAEBE14F /* Onboarding */ = {
 			isa = PBXGroup;
 			children = (
+				B0D78A1D1CD444950D3ABA35 /* ConversationalOnboardingView.swift */,
+				F9ED01604AFEC6067B0D9BC5 /* ConversationalOnboardingViewModel.swift */,
 				E580F3B22C6F19B7F3E4AAAF /* OnboardingView.swift */,
 				12825CE40629F3FF9196B5F8 /* OnboardingViewModel.swift */,
 			);
@@ -244,6 +250,8 @@
 				29B3A807FBB640257B508A84 /* AuthView.swift in Sources */,
 				691E6D7C7DFDEC463392A551 /* ChatView.swift in Sources */,
 				A5A4F93A47CF57898F1C026E /* ChatViewModel.swift in Sources */,
+				F9F180C6BA989D3E19558D31 /* ConversationalOnboardingView.swift in Sources */,
+				D6C796AC271B2BD0D827AC37 /* ConversationalOnboardingViewModel.swift in Sources */,
 				3CD5BF5DEF2A011E9A310D94 /* HealthKitManager.swift in Sources */,
 				64D26476CBFC5A56C70ABC5B /* HomeView.swift in Sources */,
 				264D82561BB01B7F6D138B79 /* HomeViewModel.swift in Sources */,

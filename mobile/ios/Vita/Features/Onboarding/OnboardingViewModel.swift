@@ -68,16 +68,23 @@ final class OnboardingViewModel: ObservableObject {
         }
     }
 
+    private struct ProfileUpdateBody: Encodable {
+        let firstName: String
+        let primaryGoal: String
+        let activityLevel: Int
+        let wakeTime: String
+    }
+
     private func saveProfile() async {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
 
-        let body: [String: String] = [
-            "firstName": firstName,
-            "primaryGoal": primaryGoal,
-            "activityLevel": "\(activityLevel)",
-            "wakeTime": formatter.string(from: wakeTime),
-        ]
+        let body = ProfileUpdateBody(
+            firstName: firstName,
+            primaryGoal: primaryGoal,
+            activityLevel: activityLevel,
+            wakeTime: formatter.string(from: wakeTime)
+        )
 
         _ = try? await APIClient.shared.patch("/profile", body: body) as EmptyResponse
     }

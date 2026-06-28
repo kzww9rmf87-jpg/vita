@@ -44,6 +44,8 @@ targets:
               NSExceptionAllowsInsecureHTTPLoads: true
     entitlements:
       path: Vita/Vita.entitlements
+      properties:
+        com.apple.developer.healthkit: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.vita.app

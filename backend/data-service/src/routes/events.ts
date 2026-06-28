@@ -14,8 +14,7 @@ import { registerConnection, unregisterConnection } from '../sse-manager.js'
 
 export const eventsRoutes: FastifyPluginAsync = async (app) => {
 
-  // GET /dashboard/events
-  app.get('/', async (req, reply) => {
+  app.get('/events', async (req, reply) => {
     const userId = (req.user as { sub: string }).sub
     const res = reply.raw
 

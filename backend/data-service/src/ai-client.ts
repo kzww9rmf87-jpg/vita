@@ -72,7 +72,9 @@ async function callAIEngine<TBody, TResponse>(
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
-  console.log('[ai-client] AI REQUEST', path, JSON.stringify(body, null, 2))
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[ai-client] AI REQUEST', path, JSON.stringify(body, null, 2))
+  }
 
   let response: Response
   try {

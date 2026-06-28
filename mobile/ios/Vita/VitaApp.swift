@@ -11,7 +11,7 @@ struct VitaApp: App {
                     if appState.onboardingComplete {
                         MainTabView()
                     } else {
-                        OnboardingView()
+                        ConversationalOnboardingView()
                             .onReceive(NotificationCenter.default.publisher(for: .vitaOnboardingComplete)) { _ in
                                 appState.onboardingComplete = true
                             }

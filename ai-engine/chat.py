@@ -12,6 +12,17 @@ from typing import Optional
 from config import get_settings
 from db import get_pool
 
+# Erreurs de facturation / quota levées par le SDK Anthropic
+_ANTHROPIC_BILLING_ERRORS = (
+    "credit balance is too low",
+    "rate limit",
+    "overloaded",
+)
+
+
+def _is_anthropic_unavailable(exc: Exception) -> bool:
+    return any(msg in str(exc).lower() for msg in _ANTHROPIC_BILLING_ERRORS)
+
 settings = get_settings()
 
 # Client async — ne bloque pas le worker FastAPI
@@ -209,12 +220,21 @@ async def handle_chat_message(
 
     messages = history + [{"role": "user", "content": message}]
 
-    response = await client.messages.create(
-        model=settings.model_analysis,
-        max_tokens=settings.max_tokens_analysis,
-        system=system_with_context,
-        messages=messages,
-    )
+    # Haiku : même qualité pour des réponses courtes (3 phrases max), coût ~20× moindre
+    try:
+        response = await client.messages.create(
+            model=settings.model_fast,
+            max_tokens=settings.max_tokens_analysis,
+            system=system_with_context,
+            messages=messages,
+        )
+    except Exception as exc:
+        if _is_anthropic_unavailable(exc):
+            raise RuntimeError(
+                "VITA n'est pas disponible pour le moment. "
+                "Réessaie dans quelques instants."
+            ) from exc
+        raise
 
     assistant_content = response.content[0].text
     tokens_used = response.usage.input_tokens + response.usage.output_tokens
