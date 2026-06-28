@@ -16,6 +16,7 @@ from memory.weekly_report import generate_weekly_report
 from memory.memory_manager import extract_and_store
 from chat import handle_chat_message
 from journal import analyze_and_respond
+from memory.reflection import generate_weekly_reflection
 
 settings = get_settings()
 
@@ -137,6 +138,24 @@ async def analyze_journal(
     """Analyse une entrée de journal et retourne l'analyse émotionnelle + réponse VITA."""
     try:
         result = await analyze_and_respond(req.user_id, req.content, req.entry_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class ReflectionRequest(BaseModel):
+    user_id: str
+    week_start: Optional[date] = None
+
+
+@app.post("/reflection/weekly")
+async def weekly_reflection(
+    req: ReflectionRequest,
+    _: bool = Depends(verify_service_token),
+):
+    """Génère (ou retourne None si déjà générée) la réflexion hebdomadaire de l'utilisateur."""
+    try:
+        result = await generate_weekly_reflection(req.user_id, req.week_start)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -26,6 +26,9 @@ from config import get_settings
 from db import get_pool
 from safety import detect_safety_signals, build_crisis_prefix
 from emotional_memory import update_emotional_memories, load_emotional_context
+from memory.consolidation import consolidate_from_interaction
+from memory.life_story import detect_life_events
+from memory.models import MemorySource
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -131,6 +134,27 @@ async def analyze_and_respond(
     if safety.has_flag:
         asyncio.ensure_future(
             _save_safety_flag(user_id, safety, entry_id)
+        )
+
+    # ── 7. Consolidation mémoire longue durée (fire-and-forget) ──────────────
+    # Pas de mémorisation si le contenu contient un signal de crise :
+    # le texte d'une détresse aiguë ne doit pas être réinjecté dans de futures conversations.
+    if not safety.has_flag:
+        asyncio.ensure_future(
+            consolidate_from_interaction(
+                user_id=user_id,
+                text=content,
+                source=MemorySource.JOURNAL,
+                source_id=entry_id,
+            )
+        )
+        asyncio.ensure_future(
+            detect_life_events(
+                user_id=user_id,
+                text=content,
+                source=MemorySource.JOURNAL,
+                source_id=entry_id,
+            )
         )
 
     return {

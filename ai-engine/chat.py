@@ -6,6 +6,7 @@ Exemples :
 - "Pourquoi je stagne au développé couché ?"
 - "Que dois-je faire aujourd'hui ?"
 """
+import asyncio
 import anthropic
 import logging
 import uuid
@@ -13,6 +14,9 @@ from typing import Optional
 from config import get_settings
 from db import get_pool
 from memory.memory_manager import load_memories
+from memory.retrieval import retrieve_context_block
+from memory.consolidation import consolidate_from_interaction
+from memory.models import MemorySource
 
 logger = logging.getLogger(__name__)
 
@@ -236,17 +240,29 @@ async def handle_chat_message(
 
     user_summary, first_name = await _load_user_summary(user_id)
     history = await _load_conversation_history(conversation_id)
-    memories = await load_memories(user_id, limit=8)
 
+    # Mémoires rule-based (court terme, check-ins/sleep/activity)
+    memories = await load_memories(user_id, limit=8)
     memory_block = ""
     if memories:
         lines = "\n".join(f"- [{m['category']}] {m['content']}" for m in memories)
         memory_block = f"\n\n--- CE QUE VITA SE SOUVIENT DE CET UTILISATEUR ---\n{lines}"
 
+    # Mémoires longue durée (IA, typées, avec retrieval hybride)
+    # Dégradation gracieuse : si le retrieval échoue, la conversation continue sans mémoire longue durée
+    try:
+        long_memory_block = await retrieve_context_block(user_id, query=message, limit=12)
+        if long_memory_block:
+            long_memory_block = f"\n\n{long_memory_block}"
+    except Exception:
+        logger.warning("Long-term memory retrieval failed for user %s — continuing without", user_id)
+        long_memory_block = ""
+
     system_with_context = (
         f"{SYSTEM_PROMPT}"
         f"\n\n--- DONNÉES ACTUELLES DE L'UTILISATEUR ---\n{user_summary}"
         f"{memory_block}"
+        f"{long_memory_block}"
     )
     messages = history + [{"role": "user", "content": message}]
 
@@ -280,6 +296,14 @@ async def handle_chat_message(
 
     await _save_message(user_id, conversation_id, "user", message)
     await _save_message(user_id, conversation_id, "assistant", assistant_content, tokens_used)
+
+    # Consolidation longue durée (fire-and-forget, n'impacte pas la latence)
+    asyncio.ensure_future(consolidate_from_interaction(
+        user_id=user_id,
+        text=message,
+        source=MemorySource.CHAT,
+        source_id=conversation_id,
+    ))
 
     return {
         "conversation_id": conversation_id,
