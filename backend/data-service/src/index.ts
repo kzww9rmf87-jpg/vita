@@ -10,6 +10,8 @@ import { dashboardRoutes } from './routes/dashboard.js'
 import { eventsRoutes } from './routes/events.js'
 import { chatRoutes } from './routes/chat.js'
 import { profileRoutes } from './routes/profile.js'
+import { timelineRoutes } from './routes/timeline.js'
+import { journalRoutes } from './routes/journal.js'
 
 async function main() {
   const app = Fastify({ logger: true })
@@ -37,6 +39,8 @@ async function main() {
   await app.register(eventsRoutes, { prefix: '/dashboard' })
   await app.register(chatRoutes, { prefix: '/chat' })
   await app.register(profileRoutes, { prefix: '/profile' })
+  await app.register(timelineRoutes, { prefix: '/timeline' })
+  await app.register(journalRoutes, { prefix: '/journal' })
 
   app.get('/health', { config: { public: true } }, async () => ({
     status: 'ok', service: 'data',

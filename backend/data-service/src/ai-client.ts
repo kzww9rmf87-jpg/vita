@@ -144,3 +144,32 @@ export async function triggerPatternDetection(
     { user_id: userId }
   )
 }
+
+interface JournalAnalyzeRequest {
+  user_id: string
+  content: string
+  entry_id?: string
+}
+
+export interface JournalAnalysis {
+  mood_label: string
+  emotional_tone: string
+  themes: string[]
+  intensity: number
+  valence: number
+  vita_response: string
+  safety_flag: boolean
+  safety_severity: string | null
+}
+
+export async function analyzeJournalEntry(
+  userId: string,
+  content: string,
+  entryId?: string
+): Promise<JournalAnalysis> {
+  return callAIEngine<JournalAnalyzeRequest, JournalAnalysis>('/journal/analyze', {
+    user_id: userId,
+    content,
+    entry_id: entryId,
+  })
+}

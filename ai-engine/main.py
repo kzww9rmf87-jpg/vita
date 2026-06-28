@@ -15,6 +15,7 @@ from memory.pattern_detector import detect_patterns
 from memory.weekly_report import generate_weekly_report
 from memory.memory_manager import extract_and_store
 from chat import handle_chat_message
+from journal import analyze_and_respond
 
 settings = get_settings()
 
@@ -58,6 +59,12 @@ class ReportRequest(BaseModel):
     user_id: str
     period: str = "weekly"
     period_start: date
+
+
+class JournalRequest(BaseModel):
+    user_id: str
+    content: str
+    entry_id: Optional[str] = None
 
 
 @app.get("/health")
@@ -118,6 +125,19 @@ async def generate_report(
     try:
         report = await generate_weekly_report(req.user_id, req.period_start)
         return report
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/journal/analyze")
+async def analyze_journal(
+    req: JournalRequest,
+    _: bool = Depends(verify_service_token),
+):
+    """Analyse une entrée de journal et retourne l'analyse émotionnelle + réponse VITA."""
+    try:
+        result = await analyze_and_respond(req.user_id, req.content, req.entry_id)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

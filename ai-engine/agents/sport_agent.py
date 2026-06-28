@@ -16,9 +16,6 @@ settings = get_settings()
 def analyze(ctx: UserContext) -> Optional[AgentSignal]:
     """Point d'entrée principal de l'agent sport."""
     sessions = ctx.activity_week or []
-    if not sessions:
-        return None
-
     signals: list[AgentSignal] = []
 
     overtraining = _detect_overtraining(sessions, ctx.sleep)

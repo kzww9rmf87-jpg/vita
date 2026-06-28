@@ -37,9 +37,9 @@ struct MainTabView: View {
                     Label("Accueil", systemImage: "house.fill")
                 }
 
-            DashboardView()
+            JournalView()
                 .tabItem {
-                    Label("Tendances", systemImage: "chart.line.uptrend.xyaxis")
+                    Label("Journal", systemImage: "book.fill")
                 }
 
             ChatView()
@@ -47,9 +47,9 @@ struct MainTabView: View {
                     Label("VITA", systemImage: "brain.head.profile")
                 }
 
-            ReportsView()
+            TimelineView()
                 .tabItem {
-                    Label("Bilans", systemImage: "doc.text.fill")
+                    Label("Agenda", systemImage: "clock.fill")
                 }
 
             ProfileView()
