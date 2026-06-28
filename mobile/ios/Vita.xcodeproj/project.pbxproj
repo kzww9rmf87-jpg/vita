@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		1F94AC516E78097C49DDFAD8 /* VitaSSEClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB06BA188D7C9513377C34EE /* VitaSSEClient.swift */; };
+		2421932BBDC9005211B4CA96 /* DailyInsightViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5D775B403943FC9A21C87C /* DailyInsightViewModel.swift */; };
 		264D82561BB01B7F6D138B79 /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFA77C00B641F7F9731F631E /* HomeViewModel.swift */; };
 		29B3A807FBB640257B508A84 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FA062C82A4AD8EAAB391A7 /* AuthView.swift */; };
 		31FBC030D028A94CDDFFB01F /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBC364DE130BF10D5BD26A68 /* APIClient.swift */; };
@@ -24,6 +25,7 @@
 		82BF423F162A9C6E67DF193C /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12825CE40629F3FF9196B5F8 /* OnboardingViewModel.swift */; };
 		83DD88C537B1E551C10C16B8 /* ExplainabilitySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E185305F9D7AF866744A05AA /* ExplainabilitySheet.swift */; };
 		8C702D80AA01206EFCCD6D09 /* JournalViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 372B4B5E7E490C52C70CA92E /* JournalViewModel.swift */; };
+		91AC5F2CEFFB95BC750C2506 /* DailyInsightView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2470749C2B60A60281A47E05 /* DailyInsightView.swift */; };
 		96BCBBA536F818A6D86485E1 /* LifeStoryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E194086D44A1B81174DF427B /* LifeStoryViewModel.swift */; };
 		A5A4F93A47CF57898F1C026E /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9B769B29929C2C4C128B22 /* ChatViewModel.swift */; };
 		AB0B46F6E2C3EFAE58C8CD78 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E580F3B22C6F19B7F3E4AAAF /* OnboardingView.swift */; };
@@ -44,6 +46,7 @@
 		12825CE40629F3FF9196B5F8 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
 		15338CB6AECAEC67C5C1F4E9 /* ReflectionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReflectionViewModel.swift; sourceTree = "<group>"; };
 		181A207FA8D466942D37653E /* VitaTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitaTheme.swift; sourceTree = "<group>"; };
+		2470749C2B60A60281A47E05 /* DailyInsightView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyInsightView.swift; sourceTree = "<group>"; };
 		28FA2E43BE684406279971BB /* MemoryInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryInspectorView.swift; sourceTree = "<group>"; };
 		2E707D61EF5029E5CFA662BB /* VitaThinkingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitaThinkingView.swift; sourceTree = "<group>"; };
 		372B4B5E7E490C52C70CA92E /* JournalViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalViewModel.swift; sourceTree = "<group>"; };
@@ -63,6 +66,7 @@
 		E185305F9D7AF866744A05AA /* ExplainabilitySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplainabilitySheet.swift; sourceTree = "<group>"; };
 		E194086D44A1B81174DF427B /* LifeStoryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeStoryViewModel.swift; sourceTree = "<group>"; };
 		E580F3B22C6F19B7F3E4AAAF /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		EA5D775B403943FC9A21C87C /* DailyInsightViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyInsightViewModel.swift; sourceTree = "<group>"; };
 		ED61E1FA9BE58DEF93ABC0B2 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		F7A8F071818DB110F6CEC267 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		F8DFCA0EE382E90591DFA833 /* MorningCheckInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningCheckInView.swift; sourceTree = "<group>"; };
@@ -183,6 +187,15 @@
 			path = Auth;
 			sourceTree = "<group>";
 		};
+		BB54AEC29F42155B6CE356AE /* DailyInsight */ = {
+			isa = PBXGroup;
+			children = (
+				2470749C2B60A60281A47E05 /* DailyInsightView.swift */,
+				EA5D775B403943FC9A21C87C /* DailyInsightViewModel.swift */,
+			);
+			path = DailyInsight;
+			sourceTree = "<group>";
+		};
 		CD4E5EF7CEBB20F4991138C6 /* Chat */ = {
 			isa = PBXGroup;
 			children = (
@@ -199,6 +212,7 @@
 				B46F4C27C8A044BFC51F5426 /* Auth */,
 				CD4E5EF7CEBB20F4991138C6 /* Chat */,
 				6ECA9AD4A02A719EEA006959 /* CheckIn */,
+				BB54AEC29F42155B6CE356AE /* DailyInsight */,
 				E015F5FA26794926A7AD05D1 /* Dashboard */,
 				1C5301792BA26AC9357F4185 /* Debug */,
 				852F2E5ED3CEF0AD36FBF466 /* Journal */,
@@ -322,6 +336,8 @@
 				A5A4F93A47CF57898F1C026E /* ChatViewModel.swift in Sources */,
 				F9F180C6BA989D3E19558D31 /* ConversationalOnboardingView.swift in Sources */,
 				D6C796AC271B2BD0D827AC37 /* ConversationalOnboardingViewModel.swift in Sources */,
+				91AC5F2CEFFB95BC750C2506 /* DailyInsightView.swift in Sources */,
+				2421932BBDC9005211B4CA96 /* DailyInsightViewModel.swift in Sources */,
 				83DD88C537B1E551C10C16B8 /* ExplainabilitySheet.swift in Sources */,
 				3CD5BF5DEF2A011E9A310D94 /* HealthKitManager.swift in Sources */,
 				64D26476CBFC5A56C70ABC5B /* HomeView.swift in Sources */,

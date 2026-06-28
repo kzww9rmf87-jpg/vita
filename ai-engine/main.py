@@ -17,6 +17,7 @@ from memory.memory_manager import extract_and_store
 from chat import handle_chat_message
 from journal import analyze_and_respond
 from memory.reflection import generate_weekly_reflection
+from daily_insight import generate_daily_insight
 
 settings = get_settings()
 
@@ -138,6 +139,28 @@ async def analyze_journal(
     """Analyse une entrée de journal et retourne l'analyse émotionnelle + réponse VITA."""
     try:
         result = await analyze_and_respond(req.user_id, req.content, req.entry_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class DailyInsightRequest(BaseModel):
+    user_id: str
+    date: Optional[date] = None
+
+
+@app.post("/daily-insight/generate")
+async def generate_insight(
+    req: DailyInsightRequest,
+    _: bool = Depends(verify_service_token),
+):
+    """
+    Génère (ou retourne) l'insight quotidien pour un utilisateur.
+    Idempotent : retourne l'existant sans régénération si déjà présent.
+    Retourne null si aucune donnée disponible pour ce jour.
+    """
+    try:
+        result = await generate_daily_insight(req.user_id, req.date)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

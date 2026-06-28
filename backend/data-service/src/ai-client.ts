@@ -189,6 +189,35 @@ export async function requestWeeklyReflection(
   )
 }
 
+// ── Daily Insight ──────────────────────────────────────────────────────────
+
+interface DailyInsightRequest {
+  user_id: string
+  date?: string
+}
+
+export interface DailyInsightAIResponse {
+  id: string
+  user_id: string
+  date: string
+  climate: string
+  summary: string
+  drivers: string[]
+  reflection: string
+  question: string
+  created_at: string
+}
+
+export async function requestDailyInsight(
+  userId: string,
+  date?: string
+): Promise<DailyInsightAIResponse | null> {
+  return callAIEngine<DailyInsightRequest, DailyInsightAIResponse | null>(
+    '/daily-insight/generate',
+    { user_id: userId, date }
+  )
+}
+
 export async function analyzeJournalEntry(
   userId: string,
   content: string,

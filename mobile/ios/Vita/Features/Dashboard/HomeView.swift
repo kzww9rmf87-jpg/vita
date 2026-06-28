@@ -13,6 +13,8 @@ struct HomeView: View {
 
                         HeaderSection(firstName: vm.firstName)
 
+                        ClimateEntryCard()
+
                         if let voice = vm.vitaVoice {
                             VitaVoiceCard(text: voice)
                         }
@@ -320,6 +322,65 @@ private struct PatternDiscoveryCard: View {
                 .stroke(VitaColor.warning.opacity(0.3), lineWidth: 1)
         )
         .padding(.horizontal, VitaSpacing.lg)
+    }
+}
+
+// MARK: — Climat intérieur du jour
+
+private struct ClimateEntryCard: View {
+    @StateObject private var vm = DailyInsightViewModel()
+
+    var body: some View {
+        NavigationLink(destination: DailyInsightView()) {
+            HStack(spacing: VitaSpacing.md) {
+
+                // Icône dynamique selon le climat disponible
+                if case .available(let insight) = vm.state {
+                    Image(systemName: insight.typedClimate.icon)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(insight.typedClimate.accentColor)
+                        .frame(width: 28)
+                } else {
+                    Image(systemName: "cloud.sun.fill")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(VitaColor.accentLight)
+                        .frame(width: 28)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Climat intérieur")
+                        .font(VitaFont.headline())
+                        .foregroundColor(VitaColor.textPrimary)
+
+                    Group {
+                        switch vm.state {
+                        case .available(let insight):
+                            Text(insight.typedClimate.label)
+                                .font(VitaFont.caption())
+                                .foregroundColor(insight.typedClimate.accentColor)
+                        case .loading, .idle:
+                            Text("Chargement…")
+                                .font(VitaFont.caption())
+                                .foregroundColor(VitaColor.textTertiary)
+                        default:
+                            Text("Générer la synthèse du jour")
+                                .font(VitaFont.caption())
+                                .foregroundColor(VitaColor.textSecondary)
+                        }
+                    }
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(VitaColor.textTertiary)
+            }
+            .padding(VitaSpacing.md)
+            .vitaCard()
+        }
+        .padding(.horizontal, VitaSpacing.lg)
+        .task { await vm.load() }
     }
 }
 

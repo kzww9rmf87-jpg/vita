@@ -193,6 +193,47 @@ export const timelineRoutes: FastifyPluginAsync = async (app) => {
 
       UNION ALL
 
+      -- ── Climat intérieur du jour ──────────────────────────────────────────────
+      -- Affiché en tête de timeline : synthèse interprétative, jamais le contenu brut.
+      -- Le summary est court (max 35 mots), sans risque d'exposition de données sensibles.
+      SELECT
+        'insight-' || id::text                                        AS id,
+        'daily_insight'                                               AS type,
+        created_at                                                    AS time,
+        CONCAT(
+          CASE climate
+            WHEN 'CALM'         THEN 'Calme'
+            WHEN 'CONSTRUCTIVE' THEN 'Constructive'
+            WHEN 'DEMANDING'    THEN 'Exigeante'
+            WHEN 'RECOVERY'     THEN 'Récupération'
+            WHEN 'UNCERTAIN'    THEN 'Incertaine'
+            WHEN 'ENERGIZED'    THEN 'Dynamisée'
+            WHEN 'REFLECTIVE'   THEN 'Réflexive'
+            WHEN 'TRANSITION'   THEN 'En transition'
+            WHEN 'BALANCED'     THEN 'Équilibrée'
+            ELSE                     climate
+          END
+        )                                                             AS title,
+        LEFT(summary, 100)                                            AS subtitle,
+        CASE climate
+          WHEN 'CALM'         THEN 'cloud.fill'
+          WHEN 'CONSTRUCTIVE' THEN 'leaf.fill'
+          WHEN 'DEMANDING'    THEN 'bolt.fill'
+          WHEN 'RECOVERY'     THEN 'moon.fill'
+          WHEN 'UNCERTAIN'    THEN 'wind'
+          WHEN 'ENERGIZED'    THEN 'sun.max.fill'
+          WHEN 'REFLECTIVE'   THEN 'sparkles'
+          WHEN 'TRANSITION'   THEN 'arrow.triangle.turn.up.right.circle.fill'
+          WHEN 'BALANCED'     THEN 'circle.grid.2x2.fill'
+          ELSE                     'sparkles'
+        END                                                           AS icon,
+        'vita'                                                        AS color_key,
+        jsonb_build_object('climate', climate, 'drivers', drivers)    AS meta
+      FROM daily_insights
+      WHERE user_id = $1 AND date = $2::date
+
+      UNION ALL
+
       -- ── Entrées de journal (titre anonymisé — jamais le contenu brut) ─────────
       SELECT
         'journal-' || id::text                                        AS id,
