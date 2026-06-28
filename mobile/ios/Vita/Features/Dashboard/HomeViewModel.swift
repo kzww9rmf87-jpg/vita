@@ -2,67 +2,67 @@ import Foundation
 
 @MainActor
 final class HomeViewModel: ObservableObject {
-    @Published var recommendation: DailyRecommendation?
-    @Published var checkinDone = false
-    @Published var dayScore = 0
-    @Published var level = 1
     @Published var firstName = ""
-    @Published var sleepSummary = "—"
-    @Published var activitySummary = "—"
-    @Published var nutritionSummary = "—"
+    @Published var recommendation: WeekReco?
+    @Published var checkinDone = false
+    @Published var avgSleepHours: Double?
+    @Published var avgEnergy: Double?
+    @Published var avgStress: Double?
+    @Published var activitySessions: Int?
+    @Published var vitaVoice: String?
     @Published var newPatterns: [PatternItem] = []
-    @Published var streaks: [StreakItem] = []
     @Published var isLoading = false
 
     func load() async {
         isLoading = true
         defer { isLoading = false }
-
-        async let dashboardTask = loadDashboard()
-        async let patternsTask = loadPatterns()
-        let _ = await (dashboardTask, patternsTask)
+        async let dashTask: Void = loadDashboard()
+        async let profileTask: Void = loadProfile()
+        _ = await (dashTask, profileTask)
     }
 
-    // Appelé par VitaThinkingView via NotificationCenter quand le check-in est terminé
     func handleCheckInComplete() {
         Task { await load() }
     }
+
+    func markRecommendationDone() {
+        // La reco dashboard n'a pas d'id persisté côté backend pour l'instant.
+        // Le bouton reste présent pour le feedback haptique — l'état est local.
+    }
+
+    // MARK: — Chargement
 
     private func loadDashboard() async {
         do {
             let data: WeekDashboard = try await APIClient.shared.get("/dashboard/week")
 
-            firstName = data.profile?.firstName ?? ""
-            dayScore = data.score
-            level = data.xp?.level ?? 1
-
             if let sleep = data.sleep {
-                let hours = (sleep.avgDuration ?? 0) / 60
-                sleepSummary = String(format: "%.1fh", hours)
+                avgSleepHours = sleep.avgDuration.map { $0 / 60 }
             }
-
-            if let act = data.activity {
-                activitySummary = "\(act.sessions ?? 0) séances"
+            if let checkin = data.checkin {
+                avgEnergy = checkin.avgEnergy
+                avgStress = checkin.avgStress
+                checkinDone = (checkin.checkinDays ?? 0) > 0
             }
-
-            if let nut = data.nutrition {
-                let pct = Int((nut.avgAdherence ?? 0) * 100)
-                nutritionSummary = "\(pct)%"
-            }
+            activitySessions = data.activity?.sessions
 
             recommendation = data.recommendation
-            checkinDone = data.checkin != nil
 
-            streaks = (data.streaks ?? []).map { s in
-                StreakItem(
-                    streakType: s.streakType,
-                    currentCount: s.currentCount,
-                    label: labelFor(s.streakType)
-                )
-            }
+            vitaVoice = computeVitaVoice(
+                sleep: data.sleep,
+                checkin: data.checkin,
+                activity: data.activity
+            )
         } catch {
-            // Silencieux — afficher état vide
+            // État vide — l'écran reste utilisable
         }
+    }
+
+    private func loadProfile() async {
+        do {
+            let data: ProfileWrapper = try await APIClient.shared.get("/profile")
+            firstName = data.profile?.firstName ?? ""
+        } catch {}
     }
 
     private func loadPatterns() async {
@@ -72,25 +72,51 @@ final class HomeViewModel: ObservableObject {
         } catch {}
     }
 
-    func markRecommendationDone() {
-        guard let id = recommendation?.id else { return }
-        Task {
-            _ = try? await APIClient.shared.patch(
-                "/recommendations/\(id)/complete",
-                body: ["completed": true]
-            ) as EmptyResponse
-        }
-    }
+    // MARK: — Voix proactive de VITA
+    // Règles par priorité : ce qui mérite d'être nommé en premier.
+    // Ton : observationnel, pas prescriptif. 2 phrases max.
 
-    private func labelFor(_ type: String) -> String {
-        switch type {
-        case "checkin": return "Check-ins"
-        case "sleep": return "Sommeil"
-        case "protein": return "Protéines"
-        case "activity": return "Activité"
-        case "no_skip": return "Sans saut"
-        default: return type
+    private func computeVitaVoice(
+        sleep: SleepStats?,
+        checkin: CheckinStats?,
+        activity: ActivityStats?
+    ) -> String? {
+        let sleepH = sleep?.avgDuration.map { $0 / 60 }
+        let energy  = checkin?.avgEnergy
+        let stress  = checkin?.avgStress
+        let sessions = activity?.sessions
+
+        // Sommeil court + énergie basse — les deux se causent mutuellement
+        if let h = sleepH, h < 6.5, let e = energy, e < 3.0 {
+            return String(format: "%.1fh de sommeil en moyenne, énergie à %.1f/5. Ces deux chiffres ne sont pas indépendants.", h, e)
         }
+
+        // Stress élevé
+        if let s = stress, s >= 4.0 {
+            return String(format: "Stress à %.1f/5 cette semaine. Qu'est-ce qui pèse en ce moment ?", s)
+        }
+
+        // Sommeil court seul
+        if let h = sleepH, h < 6.5 {
+            return String(format: "%.1fh de sommeil par nuit en moyenne cette semaine. Ton corps récupère moins vite qu'il ne le pourrait.", h)
+        }
+
+        // Bon sommeil
+        if let h = sleepH, h >= 7.5 {
+            return String(format: "%.1fh de sommeil cette semaine. C'est la base sur laquelle tout le reste repose.", h)
+        }
+
+        // Semaine active
+        if let n = sessions, n >= 3 {
+            return "\(n) séances en 7 jours. Le rythme est là."
+        }
+
+        // Énergie stable
+        if let e = energy, e >= 4.0 {
+            return String(format: "Énergie à %.1f/5 cette semaine. Tu es dans une bonne période.", e)
+        }
+
+        return nil
     }
 }
 
@@ -98,15 +124,17 @@ final class HomeViewModel: ObservableObject {
 
 struct WeekDashboard: Codable {
     let date: String
-    let score: Int
     let sleep: SleepStats?
     let activity: ActivityStats?
     let nutrition: NutritionStats?
     let checkin: CheckinStats?
-    let recommendation: DailyRecommendation?
-    let streaks: [StreakResponse]?
-    let xp: XPResponse?
-    let profile: ProfileResponse?
+    let recommendation: WeekReco?
+}
+
+struct WeekReco: Codable {
+    let content: String
+    let actionType: String?
+    let createdAt: String?
 }
 
 struct SleepStats: Codable {
@@ -131,20 +159,14 @@ struct CheckinStats: Codable {
     let avgEnergy: Double?
     let avgMood: Double?
     let avgStress: Double?
+    let checkinDays: Int?
 }
 
-struct StreakResponse: Codable {
-    let streakType: String
-    let currentCount: Int
-    let bestCount: Int
+struct ProfileWrapper: Codable {
+    let profile: ProfileData?
 }
 
-struct XPResponse: Codable {
-    let totalXp: Int
-    let level: Int
-}
-
-struct ProfileResponse: Codable {
+struct ProfileData: Codable {
     let firstName: String?
     let primaryGoal: String?
 }
@@ -154,4 +176,12 @@ struct PatternResponse: Codable {
     let description: String
     let confidence: Double
     let direction: String?
+}
+
+// MARK: — Modèles locaux
+
+struct PatternItem: Identifiable {
+    let id = UUID()
+    let description: String
+    let confidence: Double
 }

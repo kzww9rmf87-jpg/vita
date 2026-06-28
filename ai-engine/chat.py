@@ -12,6 +12,7 @@ import uuid
 from typing import Optional
 from config import get_settings
 from db import get_pool
+from memory.memory_manager import load_memories
 
 logger = logging.getLogger(__name__)
 
@@ -235,9 +236,17 @@ async def handle_chat_message(
 
     user_summary, first_name = await _load_user_summary(user_id)
     history = await _load_conversation_history(conversation_id)
+    memories = await load_memories(user_id, limit=8)
+
+    memory_block = ""
+    if memories:
+        lines = "\n".join(f"- [{m['category']}] {m['content']}" for m in memories)
+        memory_block = f"\n\n--- CE QUE VITA SE SOUVIENT DE CET UTILISATEUR ---\n{lines}"
 
     system_with_context = (
-        f"{SYSTEM_PROMPT}\n\n--- DONNÉES ACTUELLES DE L'UTILISATEUR ---\n{user_summary}"
+        f"{SYSTEM_PROMPT}"
+        f"\n\n--- DONNÉES ACTUELLES DE L'UTILISATEUR ---\n{user_summary}"
+        f"{memory_block}"
     )
     messages = history + [{"role": "user", "content": message}]
 

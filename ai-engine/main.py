@@ -13,6 +13,7 @@ from config import get_settings
 from db import init_pool, close_pool, init_redis, close_redis
 from memory.pattern_detector import detect_patterns
 from memory.weekly_report import generate_weekly_report
+from memory.memory_manager import extract_and_store
 from chat import handle_chat_message
 
 settings = get_settings()
@@ -72,6 +73,11 @@ async def get_recommendation(
     """Génère ou récupère la recommandation du jour."""
     try:
         result = await generate_daily_recommendation(req.user_id, req.date)
+
+        # Extraction des mémoires en arrière-plan — ne bloque pas la réponse
+        import asyncio
+        asyncio.ensure_future(extract_and_store(req.user_id))
+
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
