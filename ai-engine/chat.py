@@ -7,21 +7,38 @@ Exemples :
 - "Que dois-je faire aujourd'hui ?"
 """
 import anthropic
+import logging
 import uuid
 from typing import Optional
 from config import get_settings
 from db import get_pool
 
-# Erreurs de facturation / quota levées par le SDK Anthropic
-_ANTHROPIC_BILLING_ERRORS = (
+logger = logging.getLogger(__name__)
+
+# Sous-chaînes présentes dans les erreurs Anthropic de facturation / surcharge
+_ANTHROPIC_UNAVAILABLE_MARKERS = (
     "credit balance is too low",
     "rate limit",
     "overloaded",
 )
 
+# Message de repli affiché à l'utilisateur quand l'IA est hors ligne.
+# Volontairement court, honnête, et sans jargon technique.
+_FALLBACK_TEMPLATE = (
+    "Je n'ai pas accès à l'analyse complète pour l'instant{name_part}. "
+    "Ton check-in est bien enregistré — "
+    "reviens quand VITA sera reconnecté à l'IA."
+)
+
 
 def _is_anthropic_unavailable(exc: Exception) -> bool:
-    return any(msg in str(exc).lower() for msg in _ANTHROPIC_BILLING_ERRORS)
+    msg = str(exc).lower()
+    return any(marker in msg for marker in _ANTHROPIC_UNAVAILABLE_MARKERS)
+
+
+def _fallback_message(first_name: str) -> str:
+    name_part = f", {first_name}" if first_name else ""
+    return _FALLBACK_TEMPLATE.format(name_part=name_part)
 
 settings = get_settings()
 
@@ -100,8 +117,11 @@ Les données qui suivent sont les données réelles de cette personne pour les 7
 """
 
 
-async def _load_user_summary(user_id: str) -> str:
-    """Charge un résumé des données de l'utilisateur pour le contexte du LLM."""
+async def _load_user_summary(user_id: str) -> tuple[str, str]:
+    """
+    Charge un résumé des données de l'utilisateur pour le contexte du LLM.
+    Retourne (texte_résumé, prénom) — le prénom sert à personnaliser le fallback.
+    """
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("""
@@ -136,9 +156,9 @@ async def _load_user_summary(user_id: str) -> str:
         """, user_id)
 
         if not row:
-            return "Données utilisateur non disponibles."
+            return "Données utilisateur non disponibles.", ""
 
-        first_name = row['first_name'] or "l'utilisateur"
+        first_name = row['first_name'] or ""
         summary = (
             f"Données des 7 derniers jours pour {first_name} :\n"
             f"- Objectif : {row['primary_goal'] or 'non défini'}\n"
@@ -164,7 +184,7 @@ async def _load_user_summary(user_id: str) -> str:
             for p in pattern_rows:
                 summary += f"\n- {p['description_user']} (confiance: {p['confidence']:.0%})"
 
-        return summary
+        return summary, first_name
 
 
 async def _load_conversation_history(conversation_id: str) -> list[dict]:
@@ -213,11 +233,12 @@ async def handle_chat_message(
                 conversation_id, user_id
             )
 
-    user_summary = await _load_user_summary(user_id)
+    user_summary, first_name = await _load_user_summary(user_id)
     history = await _load_conversation_history(conversation_id)
 
-    system_with_context = f"{SYSTEM_PROMPT}\n\n--- DONNÉES ACTUELLES DE L'UTILISATEUR ---\n{user_summary}"
-
+    system_with_context = (
+        f"{SYSTEM_PROMPT}\n\n--- DONNÉES ACTUELLES DE L'UTILISATEUR ---\n{user_summary}"
+    )
     messages = history + [{"role": "user", "content": message}]
 
     # Haiku : même qualité pour des réponses courtes (3 phrases max), coût ~20× moindre
@@ -228,16 +249,25 @@ async def handle_chat_message(
             system=system_with_context,
             messages=messages,
         )
-    except Exception as exc:
-        if _is_anthropic_unavailable(exc):
-            raise RuntimeError(
-                "VITA n'est pas disponible pour le moment. "
-                "Réessaie dans quelques instants."
-            ) from exc
-        raise
+        assistant_content = response.content[0].text
+        tokens_used = response.usage.input_tokens + response.usage.output_tokens
 
-    assistant_content = response.content[0].text
-    tokens_used = response.usage.input_tokens + response.usage.output_tokens
+    except Exception as exc:
+        if not _is_anthropic_unavailable(exc):
+            raise
+
+        # — Mode fallback local ——————————————————————————————————————————————
+        # L'API Anthropic est indisponible (crédits insuffisants, surcharge, rate-limit).
+        # On retourne une réponse locale honnête plutôt que de crasher la démo.
+        # La conversation est quand même sauvegardée en DB pour la continuité.
+        assistant_content = _fallback_message(first_name)
+        tokens_used = 0
+        logger.warning(
+            "[VITA_FALLBACK] Anthropic unavailable — local fallback returned. "
+            "user_id=%s conversation_id=%s error=%s",
+            user_id, conversation_id, exc,
+        )
+        # ————————————————————————————————————————————————————————————————————
 
     await _save_message(user_id, conversation_id, "user", message)
     await _save_message(user_id, conversation_id, "assistant", assistant_content, tokens_used)
@@ -246,4 +276,5 @@ async def handle_chat_message(
         "conversation_id": conversation_id,
         "response": assistant_content,
         "tokens_used": tokens_used,
+        "fallback": tokens_used == 0,  # indicateur pour le monitoring
     }

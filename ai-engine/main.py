@@ -86,9 +86,6 @@ async def chat(
     try:
         response = await handle_chat_message(req.user_id, req.message, req.conversation_id)
         return response
-    except RuntimeError as e:
-        # Erreur métier lisible (ex: API indisponible) — 503 côté client
-        raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
