@@ -93,13 +93,13 @@ describe('POST /chat', () => {
       method: 'POST',
       url: '/chat',
       headers: { authorization: `Bearer ${makeToken(app)}` },
-      body: { message: 'Et le sport ?', conversationId: 'conv-existing' },
+      body: { message: 'Et le sport ?', conversationId: '00000000-0000-0000-0000-000000000001' },
     })
 
     expect(sendChatMessage).toHaveBeenCalledWith(
       'user-test-123',
       'Et le sport ?',
-      'conv-existing'
+      '00000000-0000-0000-0000-000000000001'
     )
   })
 

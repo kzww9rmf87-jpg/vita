@@ -15,27 +15,36 @@
 		4BCD52C23F6E76BAEB3398C5 /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD220E309DBB0520E0D39AE /* TimelineView.swift */; };
 		5895DAC5B12EC6146DA8C5E4 /* VitaTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 181A207FA8D466942D37653E /* VitaTheme.swift */; };
 		64D26476CBFC5A56C70ABC5B /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5725B8BD34841645E05157B0 /* HomeView.swift */; };
+		676C18E37DEA56A0E526F74C /* LifeStoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07929214826BD6A463905640 /* LifeStoryView.swift */; };
 		691E6D7C7DFDEC463392A551 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED61E1FA9BE58DEF93ABC0B2 /* ChatView.swift */; };
 		6D410C67F46DBD832677AC48 /* VitaThinkingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E707D61EF5029E5CFA662BB /* VitaThinkingView.swift */; };
 		73BCFF2CD8327C7E854AAAB5 /* MorningCheckInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8DFCA0EE382E90591DFA833 /* MorningCheckInView.swift */; };
 		794A5FBB335B92A0A12BFE00 /* MorningCheckInViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 123ABD3E2B388DFD5CA6D9A8 /* MorningCheckInViewModel.swift */; };
 		7960A461C0F4D89E073090B0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 507C37D7720791012935501D /* Assets.xcassets */; };
 		82BF423F162A9C6E67DF193C /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12825CE40629F3FF9196B5F8 /* OnboardingViewModel.swift */; };
+		83DD88C537B1E551C10C16B8 /* ExplainabilitySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E185305F9D7AF866744A05AA /* ExplainabilitySheet.swift */; };
 		8C702D80AA01206EFCCD6D09 /* JournalViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 372B4B5E7E490C52C70CA92E /* JournalViewModel.swift */; };
+		96BCBBA536F818A6D86485E1 /* LifeStoryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E194086D44A1B81174DF427B /* LifeStoryViewModel.swift */; };
 		A5A4F93A47CF57898F1C026E /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA9B769B29929C2C4C128B22 /* ChatViewModel.swift */; };
 		AB0B46F6E2C3EFAE58C8CD78 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E580F3B22C6F19B7F3E4AAAF /* OnboardingView.swift */; };
+		BAA7963769F1018E609884C7 /* WeeklyReflectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A358D842475148BF0F2F45 /* WeeklyReflectionView.swift */; };
 		C2D2614582EA03944647B09A /* TimelineViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58E6A017826207757387793B /* TimelineViewModel.swift */; };
 		D32002E0052139B058C42756 /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C465478F0C35F6C5C484AE89 /* JournalView.swift */; };
 		D6C796AC271B2BD0D827AC37 /* ConversationalOnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9ED01604AFEC6067B0D9BC5 /* ConversationalOnboardingViewModel.swift */; };
+		E263C441BF4D4C6B54A1D1CC /* MemoryInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28FA2E43BE684406279971BB /* MemoryInspectorView.swift */; };
 		E7E56C872988CD7B10D50F65 /* VitaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D10097BD2AC95442EA4DFB8 /* VitaApp.swift */; };
+		E9697A6468C0BE799EE2882E /* ReflectionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15338CB6AECAEC67C5C1F4E9 /* ReflectionViewModel.swift */; };
 		F9F180C6BA989D3E19558D31 /* ConversationalOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0D78A1D1CD444950D3ABA35 /* ConversationalOnboardingView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		01FA062C82A4AD8EAAB391A7 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		07929214826BD6A463905640 /* LifeStoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeStoryView.swift; sourceTree = "<group>"; };
 		123ABD3E2B388DFD5CA6D9A8 /* MorningCheckInViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningCheckInViewModel.swift; sourceTree = "<group>"; };
 		12825CE40629F3FF9196B5F8 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
+		15338CB6AECAEC67C5C1F4E9 /* ReflectionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReflectionViewModel.swift; sourceTree = "<group>"; };
 		181A207FA8D466942D37653E /* VitaTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitaTheme.swift; sourceTree = "<group>"; };
+		28FA2E43BE684406279971BB /* MemoryInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryInspectorView.swift; sourceTree = "<group>"; };
 		2E707D61EF5029E5CFA662BB /* VitaThinkingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitaThinkingView.swift; sourceTree = "<group>"; };
 		372B4B5E7E490C52C70CA92E /* JournalViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalViewModel.swift; sourceTree = "<group>"; };
 		507C37D7720791012935501D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -48,8 +57,11 @@
 		B0D78A1D1CD444950D3ABA35 /* ConversationalOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationalOnboardingView.swift; sourceTree = "<group>"; };
 		BBC364DE130BF10D5BD26A68 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		BBD220E309DBB0520E0D39AE /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
+		C3A358D842475148BF0F2F45 /* WeeklyReflectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyReflectionView.swift; sourceTree = "<group>"; };
 		C465478F0C35F6C5C484AE89 /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
 		CA9B769B29929C2C4C128B22 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
+		E185305F9D7AF866744A05AA /* ExplainabilitySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplainabilitySheet.swift; sourceTree = "<group>"; };
+		E194086D44A1B81174DF427B /* LifeStoryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeStoryViewModel.swift; sourceTree = "<group>"; };
 		E580F3B22C6F19B7F3E4AAAF /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		ED61E1FA9BE58DEF93ABC0B2 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		F7A8F071818DB110F6CEC267 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -60,6 +72,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		1C5301792BA26AC9357F4185 /* Debug */ = {
+			isa = PBXGroup;
+			children = (
+				28FA2E43BE684406279971BB /* MemoryInspectorView.swift */,
+			);
+			path = Debug;
+			sourceTree = "<group>";
+		};
 		437C29D9839313880FC2C6A5 /* HealthKit */ = {
 			isa = PBXGroup;
 			children = (
@@ -74,6 +94,15 @@
 				B1F436C93553F739BC96D961 /* Vita */,
 				6204DBEBF53789D5A4A1032A /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		58ED6B1BC0B102CE1E6FBD66 /* Reflection */ = {
+			isa = PBXGroup;
+			children = (
+				15338CB6AECAEC67C5C1F4E9 /* ReflectionViewModel.swift */,
+				C3A358D842475148BF0F2F45 /* WeeklyReflectionView.swift */,
+			);
+			path = Reflection;
 			sourceTree = "<group>";
 		};
 		6204DBEBF53789D5A4A1032A /* Products */ = {
@@ -114,6 +143,15 @@
 			path = Journal;
 			sourceTree = "<group>";
 		};
+		891C059C263033591E66C8E9 /* LifeStory */ = {
+			isa = PBXGroup;
+			children = (
+				07929214826BD6A463905640 /* LifeStoryView.swift */,
+				E194086D44A1B81174DF427B /* LifeStoryViewModel.swift */,
+			);
+			path = LifeStory;
+			sourceTree = "<group>";
+		};
 		941A6F7221D3D7DAFD0E86A2 /* Network */ = {
 			isa = PBXGroup;
 			children = (
@@ -150,6 +188,7 @@
 			children = (
 				ED61E1FA9BE58DEF93ABC0B2 /* ChatView.swift */,
 				CA9B769B29929C2C4C128B22 /* ChatViewModel.swift */,
+				E185305F9D7AF866744A05AA /* ExplainabilitySheet.swift */,
 			);
 			path = Chat;
 			sourceTree = "<group>";
@@ -161,8 +200,11 @@
 				CD4E5EF7CEBB20F4991138C6 /* Chat */,
 				6ECA9AD4A02A719EEA006959 /* CheckIn */,
 				E015F5FA26794926A7AD05D1 /* Dashboard */,
+				1C5301792BA26AC9357F4185 /* Debug */,
 				852F2E5ED3CEF0AD36FBF466 /* Journal */,
+				891C059C263033591E66C8E9 /* LifeStory */,
 				72EE5E42240F5588CAEBE14F /* Onboarding */,
+				58ED6B1BC0B102CE1E6FBD66 /* Reflection */,
 				F9536342B65D3D55F038226E /* Timeline */,
 			);
 			path = Features;
@@ -280,21 +322,27 @@
 				A5A4F93A47CF57898F1C026E /* ChatViewModel.swift in Sources */,
 				F9F180C6BA989D3E19558D31 /* ConversationalOnboardingView.swift in Sources */,
 				D6C796AC271B2BD0D827AC37 /* ConversationalOnboardingViewModel.swift in Sources */,
+				83DD88C537B1E551C10C16B8 /* ExplainabilitySheet.swift in Sources */,
 				3CD5BF5DEF2A011E9A310D94 /* HealthKitManager.swift in Sources */,
 				64D26476CBFC5A56C70ABC5B /* HomeView.swift in Sources */,
 				264D82561BB01B7F6D138B79 /* HomeViewModel.swift in Sources */,
 				D32002E0052139B058C42756 /* JournalView.swift in Sources */,
 				8C702D80AA01206EFCCD6D09 /* JournalViewModel.swift in Sources */,
+				676C18E37DEA56A0E526F74C /* LifeStoryView.swift in Sources */,
+				96BCBBA536F818A6D86485E1 /* LifeStoryViewModel.swift in Sources */,
+				E263C441BF4D4C6B54A1D1CC /* MemoryInspectorView.swift in Sources */,
 				73BCFF2CD8327C7E854AAAB5 /* MorningCheckInView.swift in Sources */,
 				794A5FBB335B92A0A12BFE00 /* MorningCheckInViewModel.swift in Sources */,
 				AB0B46F6E2C3EFAE58C8CD78 /* OnboardingView.swift in Sources */,
 				82BF423F162A9C6E67DF193C /* OnboardingViewModel.swift in Sources */,
+				E9697A6468C0BE799EE2882E /* ReflectionViewModel.swift in Sources */,
 				4BCD52C23F6E76BAEB3398C5 /* TimelineView.swift in Sources */,
 				C2D2614582EA03944647B09A /* TimelineViewModel.swift in Sources */,
 				E7E56C872988CD7B10D50F65 /* VitaApp.swift in Sources */,
 				1F94AC516E78097C49DDFAD8 /* VitaSSEClient.swift in Sources */,
 				5895DAC5B12EC6146DA8C5E4 /* VitaTheme.swift in Sources */,
 				6D410C67F46DBD832677AC48 /* VitaThinkingView.swift in Sources */,
+				BAA7963769F1018E609884C7 /* WeeklyReflectionView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

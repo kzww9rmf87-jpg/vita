@@ -49,6 +49,7 @@ interface ChatRequest {
 export interface ChatResponse {
   response: string
   conversationId: string
+  contextCategories?: string[]
 }
 
 interface DetectPatternsRequest {
@@ -160,6 +161,32 @@ export interface JournalAnalysis {
   vita_response: string
   safety_flag: boolean
   safety_severity: string | null
+}
+
+interface WeeklyReflectionRequest {
+  user_id: string
+  week_start?: string
+}
+
+export interface WeeklyReflectionAIResponse {
+  id: string | null
+  user_id: string
+  content: string
+  period_start: string
+  period_end: string
+  themes: string[]
+  question: string | null
+  created_at: string | null
+}
+
+export async function requestWeeklyReflection(
+  userId: string,
+  weekStart?: string
+): Promise<WeeklyReflectionAIResponse | null> {
+  return callAIEngine<WeeklyReflectionRequest, WeeklyReflectionAIResponse | null>(
+    '/reflection/weekly',
+    { user_id: userId, week_start: weekStart }
+  )
 }
 
 export async function analyzeJournalEntry(

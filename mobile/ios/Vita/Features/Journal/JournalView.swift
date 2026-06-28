@@ -11,8 +11,7 @@ struct JournalView: View {
                 VitaColor.background.ignoresSafeArea()
 
                 if vm.isLoading && vm.entries.isEmpty {
-                    ProgressView()
-                        .tint(VitaColor.accent)
+                    JournalSkeletonView()
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: VitaSpacing.lg) {
@@ -50,7 +49,7 @@ struct JournalView: View {
                     })
                 }
             }
-            .alert("Erreur", isPresented: Binding(
+            .alert("Journal indisponible", isPresented: Binding(
                 get: { vm.errorMessage != nil },
                 set: { if !$0 { vm.errorMessage = nil } }
             )) {
@@ -127,12 +126,12 @@ private struct EmotionalMemoryChip: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(memory.theme)
-                .font(.system(size: 13, weight: .semibold))
+                .font(VitaFont.caption(13))
                 .foregroundColor(VitaColor.textPrimary)
 
             if let summary = memory.summary {
                 Text(summary)
-                    .font(.system(size: 11))
+                    .font(VitaFont.caption(11))
                     .foregroundColor(VitaColor.textSecondary)
                     .lineLimit(2)
             }
@@ -142,7 +141,7 @@ private struct EmotionalMemoryChip: View {
                     .fill(valenceColor)
                     .frame(width: 6, height: 6)
                 Text("\(memory.recurrenceCount)×")
-                    .font(.system(size: 10))
+                    .font(VitaFont.caption(10))
                     .foregroundColor(VitaColor.textTertiary)
             }
         }
@@ -189,11 +188,11 @@ private struct JournalEntryRow: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.moodLabel?.capitalized ?? "Entrée")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(VitaFont.caption(14))
                         .foregroundColor(VitaColor.textPrimary)
 
                     Text(entry.displayDate)
-                        .font(.system(size: 11))
+                        .font(VitaFont.caption(11))
                         .foregroundColor(VitaColor.textTertiary)
                 }
 
@@ -226,7 +225,7 @@ private struct JournalEntryRow: View {
                         .padding(.top, 2)
 
                     Text(response)
-                        .font(.system(size: 13))
+                        .font(VitaFont.body(13))
                         .foregroundColor(VitaColor.textPrimary)
                         .italic()
                 }
@@ -254,7 +253,7 @@ private struct ThemeTag: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 11, weight: .medium))
+            .font(VitaFont.caption(11))
             .foregroundColor(VitaColor.accent)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
@@ -360,7 +359,7 @@ private struct PrivacyNote: View {
                 .font(.system(size: 10))
                 .foregroundColor(VitaColor.textTertiary)
             Text("Ton journal est privé. VITA l'analyse uniquement pour te répondre.")
-                .font(.system(size: 11))
+                .font(VitaFont.caption(11))
                 .foregroundColor(VitaColor.textTertiary)
         }
     }
@@ -415,6 +414,81 @@ struct VitaResponseSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+    }
+}
+
+// MARK: — Skeleton chargement
+
+private struct JournalSkeletonView: View {
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: VitaSpacing.lg) {
+
+                // Invitation à écrire (placeholder)
+                RoundedRectangle(cornerRadius: VitaRadius.md)
+                    .fill(VitaColor.surface)
+                    .frame(height: 52)
+                    .padding(.horizontal, VitaSpacing.lg)
+                    .padding(.top, VitaSpacing.md)
+
+                // Section mémoires
+                VStack(alignment: .leading, spacing: VitaSpacing.sm) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(VitaColor.neutral.opacity(0.2))
+                        .frame(width: 140, height: 12)
+                        .padding(.horizontal, VitaSpacing.lg)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: VitaSpacing.sm) {
+                            ForEach(0..<4, id: \.self) { _ in
+                                RoundedRectangle(cornerRadius: VitaRadius.sm)
+                                    .fill(VitaColor.surface)
+                                    .frame(width: 140, height: 72)
+                            }
+                        }
+                        .padding(.horizontal, VitaSpacing.lg)
+                    }
+                }
+
+                // Entrées récentes
+                VStack(alignment: .leading, spacing: VitaSpacing.sm) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(VitaColor.neutral.opacity(0.2))
+                        .frame(width: 110, height: 12)
+                        .padding(.horizontal, VitaSpacing.lg)
+
+                    ForEach(0..<3, id: \.self) { _ in
+                        VStack(alignment: .leading, spacing: VitaSpacing.sm) {
+                            HStack {
+                                Circle()
+                                    .fill(VitaColor.neutral.opacity(0.2))
+                                    .frame(width: 20, height: 20)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(VitaColor.neutral.opacity(0.2))
+                                        .frame(width: 80, height: 12)
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(VitaColor.neutral.opacity(0.15))
+                                        .frame(width: 120, height: 10)
+                                }
+                            }
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(VitaColor.neutral.opacity(0.15))
+                                .frame(height: 12)
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(VitaColor.neutral.opacity(0.1))
+                                .frame(width: 200, height: 12)
+                        }
+                        .padding(VitaSpacing.md)
+                        .background(VitaColor.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: VitaRadius.md))
+                        .padding(.horizontal, VitaSpacing.lg)
+                    }
+                }
+            }
+        }
+        .redacted(reason: .placeholder)
+        .allowsHitTesting(false)
     }
 }
 

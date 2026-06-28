@@ -36,6 +36,14 @@ struct HomeView: View {
                             PatternDiscoveryCard(patterns: vm.newPatterns)
                         }
 
+                        MonHistoireEntryCard()
+
+                        ReflectionEntryCard()
+
+                        #if DEBUG
+                        MemoryInspectorEntryCard()
+                        #endif
+
                         QuickLogBar()
                     }
                     .padding(.bottom, VitaSpacing.xxl)
@@ -256,7 +264,7 @@ private struct MetricsRow: View {
                     icon: "dumbbell.fill",
                     value: "\(n)",
                     label: "Séances",
-                    color: .blue.opacity(0.7)
+                    color: VitaColor.accentDark
                 )
             }
         }
@@ -315,6 +323,100 @@ private struct PatternDiscoveryCard: View {
     }
 }
 
+// MARK: — Réflexion hebdomadaire
+
+private struct ReflectionEntryCard: View {
+    var body: some View {
+        NavigationLink(destination: WeeklyReflectionView()) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Réflexion de la semaine")
+                        .font(VitaFont.headline())
+                        .foregroundColor(VitaColor.textPrimary)
+                    Text("Un regard de VITA sur ta semaine")
+                        .font(VitaFont.caption())
+                        .foregroundColor(VitaColor.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "moon.stars.fill")
+                    .foregroundColor(VitaColor.accent)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(VitaColor.textTertiary)
+            }
+            .padding(VitaSpacing.md)
+            .vitaCard()
+        }
+        .padding(.horizontal, VitaSpacing.lg)
+    }
+}
+
+// MARK: — Mon Histoire
+
+private struct MonHistoireEntryCard: View {
+    var body: some View {
+        NavigationLink(destination: LifeStoryView()) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Mon Histoire")
+                        .font(VitaFont.headline())
+                        .foregroundColor(VitaColor.textPrimary)
+                    Text("Ce que VITA a retenu de toi")
+                        .font(VitaFont.caption())
+                        .foregroundColor(VitaColor.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "book.closed.fill")
+                    .foregroundColor(VitaColor.accent)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(VitaColor.textTertiary)
+            }
+            .padding(VitaSpacing.md)
+            .vitaCard()
+        }
+        .padding(.horizontal, VitaSpacing.lg)
+    }
+}
+
+// MARK: — Memory Inspector (DEBUG uniquement)
+
+#if DEBUG
+private struct MemoryInspectorEntryCard: View {
+    var body: some View {
+        NavigationLink(destination: MemoryInspectorView()) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: VitaSpacing.xs) {
+                        Image(systemName: "ladybug.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(VitaColor.warning)
+                        Text("Memory Inspector")
+                            .font(VitaFont.headline())
+                            .foregroundColor(VitaColor.textPrimary)
+                    }
+                    Text("Mémoires longue durée — DEBUG")
+                        .font(VitaFont.caption())
+                        .foregroundColor(VitaColor.textTertiary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(VitaColor.textTertiary)
+            }
+            .padding(VitaSpacing.md)
+            .background(VitaColor.warning.opacity(0.06))
+            .clipShape(RoundedRectangle(cornerRadius: VitaRadius.lg))
+            .overlay(
+                RoundedRectangle(cornerRadius: VitaRadius.lg)
+                    .stroke(VitaColor.warning.opacity(0.2), lineWidth: 1)
+            )
+        }
+        .padding(.horizontal, VitaSpacing.lg)
+    }
+}
+#endif
+
 // MARK: — Log rapide
 
 private struct QuickLogBar: View {
@@ -334,9 +436,9 @@ private struct QuickLogBar: View {
         .padding(.horizontal, VitaSpacing.lg)
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
-            case .sleep:     Text("Log Sommeil — À implémenter")
-            case .activity:  Text("Log Sport — À implémenter")
-            case .nutrition: Text("Log Nutrition — À implémenter")
+            case .sleep:     QuickLogPlaceholderSheet(title: "Sommeil",   icon: "moon.fill")
+            case .activity:  QuickLogPlaceholderSheet(title: "Activité",  icon: "dumbbell.fill")
+            case .nutrition: QuickLogPlaceholderSheet(title: "Repas",     icon: "fork.knife")
             }
         }
     }
@@ -360,5 +462,45 @@ private struct QuickLogButton: View {
             .padding(.vertical, VitaSpacing.md)
             .vitaCard()
         }
+    }
+}
+
+private struct QuickLogPlaceholderSheet: View {
+    let title: String
+    let icon: String
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                VitaColor.background.ignoresSafeArea()
+                VStack(spacing: VitaSpacing.lg) {
+                    Spacer()
+                    Image(systemName: icon)
+                        .font(.system(size: 44, weight: .light))
+                        .foregroundColor(VitaColor.accentLight)
+                    VStack(spacing: VitaSpacing.xs) {
+                        Text(title)
+                            .font(VitaFont.headline())
+                            .foregroundColor(VitaColor.textPrimary)
+                        Text("Cette section sera disponible prochainement.")
+                            .font(VitaFont.body())
+                            .foregroundColor(VitaColor.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, VitaSpacing.xl)
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Fermer") { dismiss() }
+                        .foregroundColor(VitaColor.textSecondary)
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 }

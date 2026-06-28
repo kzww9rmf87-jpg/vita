@@ -75,7 +75,7 @@ private struct SuggestionsList: View {
         ("Que dois-je manger aujourd'hui ?", "fork.knife"),
         ("Mon sommeil est-il suffisant ?", "chart.line.uptrend.xyaxis"),
         ("Pourquoi mon poids augmente ?", "scalemass.fill"),
-        ("Suis-je en train de surentraîner ?", "exclamationmark.triangle.fill"),
+        ("Suis-je en train de surentraîner ?", "figure.run"),
     ]
 
     var body: some View {
@@ -133,6 +133,7 @@ private struct SuggestionsList: View {
 
 private struct MessageBubble: View {
     let message: ChatMessage
+    @State private var showExplainability = false
 
     var body: some View {
         HStack(alignment: .bottom, spacing: VitaSpacing.sm) {
@@ -164,6 +165,20 @@ private struct MessageBubble: View {
                 Text(message.timestamp.formatted(.dateTime.hour().minute()))
                     .font(VitaFont.caption(11))
                     .foregroundColor(VitaColor.textTertiary)
+
+                if message.role == .assistant && !message.contextCategories.isEmpty {
+                    Button {
+                        showExplainability = true
+                    } label: {
+                        Text("Pourquoi ?")
+                            .font(VitaFont.caption(11))
+                            .foregroundColor(VitaColor.textTertiary)
+                            .underline()
+                    }
+                    .sheet(isPresented: $showExplainability) {
+                        ExplainabilitySheet(categories: message.contextCategories)
+                    }
+                }
             }
 
             if message.role == .user { Spacer() }

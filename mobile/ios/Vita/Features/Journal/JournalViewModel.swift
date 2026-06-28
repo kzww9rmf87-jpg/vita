@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import UIKit
 
 // MARK: — Modèles
 
@@ -135,6 +136,7 @@ final class JournalViewModel: ObservableObject {
             showingNewEntry = false
             vitaResponse = response.vitaResponse
             showingVitaResponse = response.vitaResponse != nil
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
             await load()
         } catch {
             errorMessage = "Impossible de sauvegarder l'entrée."

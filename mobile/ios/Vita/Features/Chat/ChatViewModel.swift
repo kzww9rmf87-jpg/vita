@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 @MainActor
 final class ChatViewModel: ObservableObject {
@@ -11,10 +12,11 @@ final class ChatViewModel: ObservableObject {
     func send(_ text: String) {
         guard !text.trimmingCharacters(in: .whitespaces).isEmpty else { return }
 
-        let userMessage = ChatMessage(role: .user, content: text)
+        let userMessage = ChatMessage(role: .user, content: text, contextCategories: [])
         messages.append(userMessage)
         inputText = ""
         isTyping = true
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
         Task { await sendToAPI(text) }
     }
@@ -30,12 +32,17 @@ final class ChatViewModel: ObservableObject {
             let response: ChatResponseBody = try await APIClient.shared.post("/chat", body: body)
             conversationId = response.conversationId
 
-            let assistantMessage = ChatMessage(role: .assistant, content: response.response)
+            let assistantMessage = ChatMessage(
+                role: .assistant,
+                content: response.response,
+                contextCategories: response.contextCategories ?? []
+            )
             messages.append(assistantMessage)
         } catch {
             let errorMessage = ChatMessage(
                 role: .assistant,
-                content: "Je n'ai pas pu analyser tes données pour le moment. Réessaie dans quelques secondes."
+                content: "Je n'ai pas pu analyser tes données pour le moment. Réessaie dans quelques secondes.",
+                contextCategories: []
             )
             messages.append(errorMessage)
         }
@@ -54,6 +61,8 @@ struct ChatMessage: Identifiable {
     let role: MessageRole
     let content: String
     let timestamp = Date()
+    // Catégories générales utilisées par VITA (jamais de contenu brut)
+    let contextCategories: [String]
 }
 
 enum MessageRole {
@@ -69,4 +78,5 @@ struct ChatResponseBody: Decodable {
     let conversationId: String
     let response: String
     let tokensUsed: Int?
+    let contextCategories: [String]?
 }

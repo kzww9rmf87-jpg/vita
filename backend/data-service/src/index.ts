@@ -12,6 +12,9 @@ import { chatRoutes } from './routes/chat.js'
 import { profileRoutes } from './routes/profile.js'
 import { timelineRoutes } from './routes/timeline.js'
 import { journalRoutes } from './routes/journal.js'
+import { lifeStoryRoutes } from './routes/life-story.js'
+import { reflectionRoutes } from './routes/reflection.js'
+import { debugRoutes } from './routes/debug.js'
 
 async function main() {
   const app = Fastify({ logger: true })
@@ -41,6 +44,13 @@ async function main() {
   await app.register(profileRoutes, { prefix: '/profile' })
   await app.register(timelineRoutes, { prefix: '/timeline' })
   await app.register(journalRoutes, { prefix: '/journal' })
+  await app.register(lifeStoryRoutes, { prefix: '/life-story' })
+  await app.register(reflectionRoutes, { prefix: '/reflection' })
+
+  // Routes de débogage — absentes des déploiements production
+  if (process.env.NODE_ENV !== 'production') {
+    await app.register(debugRoutes, { prefix: '/debug' })
+  }
 
   app.get('/health', { config: { public: true } }, async () => ({
     status: 'ok', service: 'data',

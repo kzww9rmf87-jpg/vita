@@ -9,6 +9,7 @@ Exemples :
 import asyncio
 import anthropic
 import logging
+import re
 import uuid
 from typing import Optional
 from config import get_settings
@@ -46,6 +47,59 @@ def _fallback_message(first_name: str) -> str:
     return _FALLBACK_TEMPLATE.format(name_part=name_part)
 
 settings = get_settings()
+
+# ── Explainability ───────────────────────────────────────────────────────────
+# Libellés lisibles exposés à l'iOS — jamais de contenu brut.
+# Correspond aux MemoryType de memory/models.py (13 valeurs).
+
+_MEMORY_TYPE_LABELS: dict[str, str] = {
+    "goal":       "ton projet personnel",
+    "work":       "ta vie professionnelle",
+    "family":     "ta vie familiale",
+    "health":     "ta santé",
+    "habit":      "tes habitudes récentes",
+    "fear":       "ce qui te pèse",
+    "motivation": "ce qui te motive",
+    "value":      "tes valeurs",
+    "emotion":    "ton vécu émotionnel",
+    "event":      "un moment récent",
+    "person":     "quelqu'un d'important pour toi",
+    "project":    "un projet en cours",
+    "other":      "nos échanges passés",
+}
+
+
+def _extract_context_categories(
+    long_memory_block: str,
+    has_memory_block: bool,
+) -> list[str]:
+    """
+    Dérive les catégories de contexte utilisées pour formuler une réponse.
+
+    Lit les types présents dans le bloc mémoire longue durée (ex: "(goal, ★★★)"),
+    les traduit en libellés lisibles, et ajoute la source de données récentes si
+    le bloc rule-based est non vide. Retourne une liste déduplicée, ordonnée
+    par ordre d'apparition dans le bloc.
+
+    Ne retourne jamais de contenu brut ni de valeurs personnelles.
+    """
+    categories: list[str] = []
+    seen: set[str] = set()
+
+    if long_memory_block:
+        for t in re.findall(r'\((\w+),\s*★', long_memory_block):
+            label = _MEMORY_TYPE_LABELS.get(t)
+            if label and label not in seen:
+                categories.append(label)
+                seen.add(label)
+
+    if has_memory_block:
+        label = "tes données des derniers jours"
+        if label not in seen:
+            categories.append(label)
+
+    return categories
+
 
 # Client async — ne bloque pas le worker FastAPI
 client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
@@ -305,9 +359,15 @@ async def handle_chat_message(
         source_id=conversation_id,
     ))
 
+    context_categories = _extract_context_categories(
+        long_memory_block=long_memory_block,
+        has_memory_block=bool(memory_block),
+    )
+
     return {
         "conversation_id": conversation_id,
         "response": assistant_content,
         "tokens_used": tokens_used,
-        "fallback": tokens_used == 0,  # indicateur pour le monitoring
+        "fallback": tokens_used == 0,
+        "context_categories": context_categories,
     }
