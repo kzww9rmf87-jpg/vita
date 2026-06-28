@@ -69,8 +69,8 @@ describe('requestRecommendation', () => {
     const [url, options] = fetchSpy.mock.calls[0] as [string, RequestInit]
     expect(url).toBe('http://ai-engine:3003/recommend')
     expect(JSON.parse(options.body as string)).toMatchObject({
-      userId: 'user-abc',
-      forceRefresh: true,
+      user_id: 'user-abc',
+      force_refresh: true,
     })
   })
 
@@ -144,7 +144,7 @@ describe('sendChatMessage', () => {
 
     const [, options] = fetchSpy.mock.calls[0] as [string, RequestInit]
     expect(JSON.parse(options.body as string)).toMatchObject({
-      conversationId: 'conv-456',
+      conversation_id: 'conv-456',
     })
   })
 
