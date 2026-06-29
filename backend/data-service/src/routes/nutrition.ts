@@ -376,9 +376,14 @@ export const nutritionRoutes: FastifyPluginAsync = async (app) => {
   app.get('/recipes', async (req, reply) => {
     const userId = (req.user as { sub: string }).sub
 
+    // NUMERIC(5,1) retourné comme string par node-postgres → cast ::FLOAT pour iOS JSONDecoder
     const recipes = await query(
-      `SELECT id, name, description, servings, calories, protein_g, carbs_g,
-              fat_g, fiber_g, prep_minutes, cook_minutes, created_at
+      `SELECT id, name, description, servings, calories,
+              protein_g::FLOAT AS protein_g,
+              carbs_g::FLOAT   AS carbs_g,
+              fat_g::FLOAT     AS fat_g,
+              fiber_g::FLOAT   AS fiber_g,
+              prep_minutes, cook_minutes, created_at
        FROM recipes
        WHERE user_id = $1
        ORDER BY created_at DESC`,
@@ -392,16 +397,23 @@ export const nutritionRoutes: FastifyPluginAsync = async (app) => {
     const { id } = req.params as { id: string }
 
     const recipe = await queryOne(
-      `SELECT id, name, description, servings, calories, protein_g, carbs_g,
-              fat_g, fiber_g, prep_minutes, cook_minutes, notes, created_at
+      `SELECT id, name, description, servings, calories,
+              protein_g::FLOAT AS protein_g,
+              carbs_g::FLOAT   AS carbs_g,
+              fat_g::FLOAT     AS fat_g,
+              fiber_g::FLOAT   AS fiber_g,
+              prep_minutes, cook_minutes, notes, created_at
        FROM recipes WHERE id = $1 AND user_id = $2`,
       [id, userId]
     )
     if (!recipe) return reply.status(404).send({ error: 'NOT_FOUND' })
 
+    // quantity_g NUMERIC(7,2) NOT NULL → cast ::FLOAT pour iOS JSONDecoder
     const ingredients = await query(
-      `SELECT ri.id, ri.name, ri.quantity_g, ri.sort_order,
-              fi.id AS food_item_id, fi.calories_per_100g, fi.protein_per_100g
+      `SELECT ri.id, ri.name,
+              ri.quantity_g::FLOAT AS quantity_g,
+              ri.sort_order,
+              fi.id AS food_item_id
        FROM recipe_ingredients ri
        LEFT JOIN food_items fi ON fi.id = ri.food_item_id
        WHERE ri.recipe_id = $1
