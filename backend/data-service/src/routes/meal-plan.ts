@@ -25,7 +25,7 @@ const MealPlanSchema = z.object({
 
 const MealPlanItemSchema = z.object({
   day_of_week:  z.number().int().min(0).max(6),
-  meal_slot:    z.enum(['lunch', 'dinner']),
+  meal_slot:    z.enum(['breakfast', 'lunch', 'dinner', 'snack']),
   recipe_id:    z.string().uuid().optional(),
   recipe_name:  z.string().min(1).max(200),
   portions:     z.number().min(0.5).max(20).default(1),

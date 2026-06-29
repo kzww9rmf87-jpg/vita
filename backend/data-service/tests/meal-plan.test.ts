@@ -239,13 +239,42 @@ describe('POST /meal-plans/:id/items', () => {
     expect(res.statusCode).toBe(400)
   })
 
-  it('400 si meal_slot invalide', async () => {
+  it('400 si meal_slot invalide (valeur inconnue)', async () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/meal-plans/p1/items',
-      payload: { day_of_week: 0, meal_slot: 'breakfast', recipe_name: 'Test', portions: 1 },
+      payload: { day_of_week: 0, meal_slot: 'brunch', recipe_name: 'Test', portions: 1 },
     })
     expect(res.statusCode).toBe(400)
+  })
+
+  // Sprint 9.3 — les 4 créneaux doivent être acceptés
+  it('201 breakfast accepté (Sprint 9.3)', async () => {
+    ;(queryOne as any)
+      .mockResolvedValueOnce({ id: 'p1' })
+      .mockResolvedValueOnce({ id: 'item-breakfast' })
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'POST', url: '/meal-plans/p1/items',
+      payload: { day_of_week: 0, meal_slot: 'breakfast', recipe_name: 'Yaourt granola', portions: 1 },
+    })
+    expect(res.statusCode).toBe(201)
+    const args: unknown[] = (queryOne as any).mock.calls[1][1]
+    expect(args[2]).toBe('breakfast')
+  })
+
+  it('201 snack accepté (Sprint 9.3)', async () => {
+    ;(queryOne as any)
+      .mockResolvedValueOnce({ id: 'p1' })
+      .mockResolvedValueOnce({ id: 'item-snack' })
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'POST', url: '/meal-plans/p1/items',
+      payload: { day_of_week: 3, meal_slot: 'snack', recipe_name: 'Pomme & amandes', portions: 1 },
+    })
+    expect(res.statusCode).toBe(201)
+    const args: unknown[] = (queryOne as any).mock.calls[1][1]
+    expect(args[2]).toBe('snack')
   })
 
   it('404 si plan introuvable', async () => {
@@ -537,5 +566,91 @@ describe('PATCH /meal-plans/:id/shopping-list/:itemId', () => {
     )
     expect(updateCall).toBeDefined()
     expect(updateCall![1][1]).toBe(true)
+  })
+})
+
+// ── Sprint 9.3 — Distribution multi-créneaux ──────────────────────────────────
+
+describe('Sprint 9.3 — distribute avec breakfast et snack', () => {
+  beforeEach(() => { vi.resetAllMocks() })
+
+  it('distribute insère correctement un slot breakfast retourné par l\'AI engine', async () => {
+    const recipeUUID = 'aaaaaaaa-bbbb-cccc-dddd-ffffffffffff'
+    ;(queryOne as any)
+      .mockResolvedValueOnce({ id: 'p1' })
+      .mockResolvedValueOnce({ meals_per_day: 3, objective: 'maintain', batch_cooking: false })
+    ;(query as any)
+      .mockResolvedValueOnce([
+        { id: recipeUUID, name: 'Yaourt granola', servings: 1,
+          prep_minutes: 5, cook_minutes: 0,
+          calories: 280, protein_g: 10.0, carbs_g: 38.0, fat_g: 8.0, fiber_g: 2.0 },
+      ])
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([])
+
+    ;(requestSmartMealPlan as any).mockResolvedValue({
+      slots: [
+        { recipe_id: recipeUUID, recipe_name: 'Yaourt granola',
+          day_of_week: 0, meal_slot: 'breakfast', portions: 1,
+          macros: { calories: 280, protein_g: 10.0, carbs_g: 38.0, fat_g: 8.0, fiber_g: 2.0 } },
+      ],
+      day_macros:  [{ day_of_week: 0, calories: 280 }],
+      week_macros: { day_of_week: -1, calories: 280 },
+      used_claude: false,
+    })
+
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'POST', url: '/meal-plans/p1/distribute',
+      payload: { recipe_ids: [recipeUUID] },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toMatchObject({ itemsCreated: 1 })
+
+    // L'INSERT doit contenir 'breakfast'
+    const insertCall = (query as any).mock.calls.find(
+      (c: unknown[]) => (c[0] as string).includes('INSERT INTO meal_plan_items')
+    )
+    expect(insertCall).toBeDefined()
+    expect(insertCall![1]).toContain('breakfast')
+  })
+
+  it('distribute insère correctement un slot snack retourné par l\'AI engine', async () => {
+    const recipeUUID = 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff'
+    ;(queryOne as any)
+      .mockResolvedValueOnce({ id: 'p1' })
+      .mockResolvedValueOnce({ meals_per_day: 4, objective: 'maintain', batch_cooking: false })
+    ;(query as any)
+      .mockResolvedValueOnce([
+        { id: recipeUUID, name: 'Pomme & amandes', servings: 1,
+          prep_minutes: 2, cook_minutes: 0,
+          calories: 180, protein_g: 5.0, carbs_g: 20.0, fat_g: 9.0, fiber_g: 3.0 },
+      ])
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([])
+
+    ;(requestSmartMealPlan as any).mockResolvedValue({
+      slots: [
+        { recipe_id: recipeUUID, recipe_name: 'Pomme & amandes',
+          day_of_week: 2, meal_slot: 'snack', portions: 1,
+          macros: { calories: 180, protein_g: 5.0, carbs_g: 20.0, fat_g: 9.0, fiber_g: 3.0 } },
+      ],
+      day_macros:  [{ day_of_week: 2, calories: 180 }],
+      week_macros: { day_of_week: -1, calories: 180 },
+      used_claude: false,
+    })
+
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'POST', url: '/meal-plans/p1/distribute',
+      payload: { recipe_ids: [recipeUUID] },
+    })
+    expect(res.statusCode).toBe(200)
+
+    const insertCall = (query as any).mock.calls.find(
+      (c: unknown[]) => (c[0] as string).includes('INSERT INTO meal_plan_items')
+    )
+    expect(insertCall).toBeDefined()
+    expect(insertCall![1]).toContain('snack')
   })
 })

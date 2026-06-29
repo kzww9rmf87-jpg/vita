@@ -122,10 +122,11 @@ class RecipeWithMacros(BaseModel):
 
 class SmartMealPlanInput(BaseModel):
     """Entrée complète de l'agent."""
-    user_id:    str
-    recipes:    list[RecipeWithMacros]
-    profile:    Optional[NutritionProfile] = None
-    pantry:     list[str] = []  # noms d'ingrédients en minuscules
+    user_id:           str
+    recipes:           list[RecipeWithMacros]
+    profile:           Optional[NutritionProfile] = None
+    pantry:            list[str] = []  # noms d'ingrédients en minuscules
+    activity_schedule: Optional[list] = None  # §7 — réservé Sprint futur
 
 
 @dataclass
@@ -134,7 +135,7 @@ class PlannedSlot:
     recipe_id:   str
     recipe_name: str
     day_of_week: int
-    meal_slot:   str  # "lunch" | "dinner"
+    meal_slot:   str  # "breakfast" | "lunch" | "dinner" | "snack"
     portions:    float
     macros:      MealMacros = field(default_factory=MealMacros.empty)
 
@@ -199,11 +200,19 @@ class MealPlannerAgent:
 
 # ── Algorithme local ─────────────────────────────────────────────────────────
 
-SLOTS_ORDER: list[tuple[int, str]] = [
-    (day, slot)
-    for day in range(7)
-    for slot in ("lunch", "dinner")
-]
+# Créneaux disponibles selon le nombre de repas par jour (§1)
+_SLOT_SETS: dict[int, tuple[str, ...]] = {
+    2: ("lunch", "dinner"),
+    3: ("breakfast", "lunch", "dinner"),
+    4: ("breakfast", "lunch", "dinner", "snack"),
+}
+
+
+def _build_slots_order(meals_per_day: int) -> list[tuple[int, str]]:
+    """Construit la liste des créneaux pour une semaine selon le rythme choisi."""
+    n = max(2, min(4, meals_per_day))
+    slots = _SLOT_SETS.get(n, ("lunch", "dinner"))
+    return [(day, slot) for day in range(7) for slot in slots]
 
 
 def _local_distribute(
@@ -211,31 +220,50 @@ def _local_distribute(
     profile: Optional[NutritionProfile],
 ) -> list[PlannedSlot]:
     """
-    Distribue les recettes sur 14 créneaux selon des règles locales.
+    Distribue les recettes sur les créneaux selon des règles locales.
+    Le nombre de créneaux dépend de meals_per_day (2→14, 3→21, 4→28).
     Aucun appel réseau. Résultat déterministe.
     """
+    meals_per_day = profile.meals_per_day if profile else 2
+    slots_order   = _build_slots_order(meals_per_day)
     batch_cooking = profile.batch_cooking if profile else False
-    cook_time = profile.cook_time_available if profile else "moderate"
+    cook_time     = profile.cook_time_available if profile else "moderate"
 
-    quick = [r for r in recipes if r.total_minutes <= 30]
-    slow  = [r for r in recipes if r.total_minutes > 30]
+    very_quick = [r for r in recipes if r.total_minutes <= 15]
+    quick      = [r for r in recipes if r.total_minutes <= 30]
+    slow       = [r for r in recipes if r.total_minutes > 30]
     if not quick:
-        quick = list(recipes)  # tout devient "rapide" si rien de rapide
+        quick = list(recipes)
 
     result: list[PlannedSlot] = []
     used: set[str] = set()
     cycle_idx = 0
     last_id: Optional[str] = None
 
-    for day, slot in SLOTS_ORDER:
-        is_weekend = day >= 5  # sam = 5, dim = 6
-        is_sunday_dinner = (day == 6 and slot == "dinner")
+    for day, slot in slots_order:
+        is_weekend             = day >= 5
+        is_sunday_dinner       = (day == 6 and slot == "dinner")
+        is_pre_sunday_dinner   = (batch_cooking and day == 6 and slot != "dinner")
 
-        # Batch cooking : réserver le dimanche soir pour les préparations longues
         if batch_cooking and is_sunday_dinner and slow:
+            # Batch cooking : réserver le dimanche soir pour les préparations longues
             recipe = _pick(slow, used, last_id) or _pick(recipes, set(), last_id) or recipes[cycle_idx % len(recipes)]
+        elif is_pre_sunday_dinner and slow:
+            # Dimanche avant le dîner batch cooking : éviter les recettes lentes (les garder pour le soir)
+            # Fallback progressif dans le pool non-lent uniquement
+            pool   = very_quick or quick
+            recipe = (
+                _pick(pool, used, last_id)
+                or _pick(pool, set(), last_id)
+                or _pick(pool, set(), None)
+                or recipes[cycle_idx % len(recipes)]
+            )
+        elif slot in ("breakfast", "snack"):
+            # Petit-déjeuner et collation : recettes très rapides en priorité
+            pool   = very_quick or quick
+            recipe = _pick(pool, used, last_id) or _pick(recipes, set(), last_id) or recipes[cycle_idx % len(recipes)]
         elif slot == "lunch" and not is_weekend:
-            # Jours de semaine → déjeuner rapide
+            # Déjeuners de semaine → recette rapide
             recipe = _pick(quick, used, last_id) or _pick(recipes, set(), last_id) or recipes[cycle_idx % len(recipes)]
         elif is_weekend and cook_time == "generous":
             # Week-end avec temps disponible → recettes élaborées en priorité
@@ -255,7 +283,7 @@ def _local_distribute(
             recipe_name=recipe.name,
             day_of_week=day,
             meal_slot=slot,
-            portions=float(recipe.servings),  # portions = servings par défaut
+            portions=float(recipe.servings),
         ))
 
     return result
@@ -349,8 +377,10 @@ def _should_call_claude(
     return has_enough_recipes and (has_specific_objective or has_constraints) and has_macros
 
 
-_REFINE_SYSTEM_PROMPT = """
-Tu es VITA, Témoin Bienveillant. Tu aides à organiser la semaine alimentaire
+def _build_refine_system_prompt(total_slots: int, slot_types: list[str]) -> str:
+    """Construit le prompt système de raffinement selon le nombre de créneaux et les slots actifs."""
+    slots_str = " ou ".join(f'"{s}"' for s in slot_types)
+    return f"""Tu es VITA, Témoin Bienveillant. Tu aides à organiser la semaine alimentaire
 d'un utilisateur en répartissant ses recettes sur ses créneaux.
 
 RÈGLES ABSOLUES
@@ -362,17 +392,17 @@ RÈGLES ABSOLUES
   le soir et en énergie le matin, sans rigidité.
 — Si l'objectif est "lose" (perte de poids), privilégier les repas légers le soir.
 — Si batch_cooking=true, la recette la plus longue doit être au créneau 6-dinner (dimanche soir).
-— Toujours garder 14 créneaux. Ne pas en supprimer.
+— Toujours garder {total_slots} créneaux. Ne pas en supprimer.
 
 FORMAT DE RÉPONSE OBLIGATOIRE — JSON pur, aucun commentaire :
 [
-  {"recipe_id": "uuid", "day_of_week": 0, "meal_slot": "lunch"},
+  {{"recipe_id": "uuid", "day_of_week": 0, "meal_slot": "lunch"}},
   ...
 ]
 
 day_of_week : 0=lundi, 1=mardi, 2=mercredi, 3=jeudi, 4=vendredi, 5=samedi, 6=dimanche
-meal_slot : "lunch" ou "dinner"
-Exactement 14 objets.
+meal_slot : {slots_str}
+Exactement {total_slots} objets.
 """
 
 
@@ -385,7 +415,10 @@ async def _refine_with_claude(
     Demande à Claude de réorganiser les créneaux pour mieux servir l'objectif.
     Retourne None en cas d'échec (l'algorithme local est alors utilisé).
     """
-    # Préparer le contexte pour Claude — compact et structuré
+    total_slots     = len(slots)
+    valid_slot_types = sorted(set(s.meal_slot for s in slots))
+    system_prompt   = _build_refine_system_prompt(total_slots, valid_slot_types)
+
     recipes_summary = [
         {
             "id": r.id,
@@ -407,26 +440,28 @@ async def _refine_with_claude(
         "activity_level": profile.activity_level,
         "batch_cooking": profile.batch_cooking,
         "cook_time_available": profile.cook_time_available,
-        "excluded_foods": profile.excluded_foods[:5],  # max 5 pour rester compact
+        "excluded_foods": profile.excluded_foods[:5],
     }
 
     user_message = (
         f"Recettes disponibles : {json.dumps(recipes_summary, ensure_ascii=False)}\n\n"
         f"Profil : {json.dumps(profile_summary, ensure_ascii=False)}\n\n"
         f"Plan actuel (algorithme) : {json.dumps(current_plan, ensure_ascii=False)}\n\n"
-        "Réorganise les créneaux pour mieux servir l'objectif de l'utilisateur. "
-        "Retourne uniquement le JSON des 14 créneaux réordonnés."
+        f"Réorganise les créneaux pour mieux servir l'objectif de l'utilisateur. "
+        f"Retourne uniquement le JSON des {total_slots} créneaux réordonnés."
     )
 
     try:
         msg = await _get_client().messages.create(
-            model=_get_settings().model_fast,  # claude-haiku — appel léger
-            max_tokens=600,
-            system=_REFINE_SYSTEM_PROMPT,
+            model=_get_settings().model_fast,
+            max_tokens=900,
+            system=system_prompt,
             messages=[{"role": "user", "content": user_message}],
         )
         raw = msg.content[0].text.strip()
-        return _parse_claude_plan(raw, slots, recipes)
+        return _parse_claude_plan(raw, slots, recipes,
+                                  expected_count=total_slots,
+                                  valid_slots=set(valid_slot_types))
     except Exception as exc:
         logger.warning("[meal_planner_agent] Claude refinement failed: %s", exc)
         return None
@@ -436,14 +471,18 @@ def _parse_claude_plan(
     raw: str,
     original_slots: list[PlannedSlot],
     recipes: list[RecipeWithMacros],
+    expected_count: int = 14,
+    valid_slots: Optional[set[str]] = None,
 ) -> Optional[list[PlannedSlot]]:
     """
     Parse la réponse JSON de Claude.
-    Valide que : 14 créneaux, recipe_ids connus, pas de doublon jour+slot.
+    Valide : N créneaux (selon meals_per_day), recipe_ids connus, pas de doublon jour+slot.
     """
     import re
 
-    # Extraire le tableau JSON
+    if valid_slots is None:
+        valid_slots = {"lunch", "dinner"}
+
     match = re.search(r"\[.*\]", raw, re.DOTALL)
     if not match:
         return None
@@ -453,24 +492,24 @@ def _parse_claude_plan(
     except json.JSONDecodeError:
         return None
 
-    if len(data) != 14:
+    if len(data) != expected_count:
         return None
 
-    valid_ids    = {r.id for r in recipes}
-    recipe_map   = {r.id: r for r in recipes}
-    seen_slots   = set()
+    valid_ids  = {r.id for r in recipes}
+    recipe_map = {r.id: r for r in recipes}
+    seen_slots = set()
     result: list[PlannedSlot] = []
 
     for item in data:
-        rid   = item.get("recipe_id", "")
-        day   = item.get("day_of_week")
-        slot  = item.get("meal_slot", "")
+        rid  = item.get("recipe_id", "")
+        day  = item.get("day_of_week")
+        slot = item.get("meal_slot", "")
 
         if rid not in valid_ids:
             return None
         if not isinstance(day, int) or day not in range(7):
             return None
-        if slot not in ("lunch", "dinner"):
+        if slot not in valid_slots:
             return None
 
         key = (day, slot)

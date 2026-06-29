@@ -20,7 +20,7 @@ class MealPlanInput(BaseModel):
     recipes: list[RecipeForPlan] = Field(min_length=1)
 
 
-MealSlotLiteral = Literal["lunch", "dinner"]
+MealSlotLiteral = Literal["breakfast", "lunch", "dinner", "snack"]
 
 
 class MealSlot(BaseModel):

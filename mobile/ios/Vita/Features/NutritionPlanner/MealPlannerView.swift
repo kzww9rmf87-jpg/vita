@@ -29,9 +29,9 @@ struct MealPlannerView: View {
                             ForEach(0..<7, id: \.self) { day in
                                 VStack(spacing: 4) {
                                     DayRow(
-                                        dayLabel: DAYS_FR[day],
-                                        lunchItems: vm.items(day: day, slot: "lunch"),
-                                        dinnerItems: vm.items(day: day, slot: "dinner"),
+                                        dayLabel:     DAYS_FR[day],
+                                        activeSlots:  vm.activeMealSlots,
+                                        itemsForSlot: { slot in vm.items(day: day, slot: slot) },
                                         onAdd:    { slot in addSlot = (day, slot) },
                                         onRemove: { id in Task { await vm.removeItem(itemId: id) } },
                                         onMove:   { id, targetDay, targetSlot in
@@ -123,13 +123,20 @@ private struct WeekNavigator: View {
 
 // MARK: — DayRow
 
+private let SLOT_LABELS: [String: String] = [
+    "breakfast": "Petit-déjeuner",
+    "lunch":     "Déjeuner",
+    "dinner":    "Dîner",
+    "snack":     "Collation",
+]
+
 private struct DayRow: View {
-    let dayLabel: String
-    let lunchItems: [MealPlanItem]
-    let dinnerItems: [MealPlanItem]
-    let onAdd: (String) -> Void
+    let dayLabel:     String
+    let activeSlots:  [String]
+    let itemsForSlot: (String) -> [MealPlanItem]
+    let onAdd:    (String) -> Void
     let onRemove: (String) -> Void
-    let onMove: (String, Int, String) -> Void  // (itemId, targetDay, targetSlot)
+    let onMove:   (String, Int, String) -> Void  // (itemId, targetDay, targetSlot)
     let day: Int
 
     var body: some View {
@@ -140,12 +147,15 @@ private struct DayRow: View {
                 .textCase(.uppercase)
 
             HStack(alignment: .top, spacing: VitaSpacing.sm) {
-                SlotCell(label: "Déjeuner", items: lunchItems,
-                         onAdd: { onAdd("lunch") }, onRemove: onRemove,
-                         onMove: { id in onMove(id, day, "lunch") })
-                SlotCell(label: "Dîner", items: dinnerItems,
-                         onAdd: { onAdd("dinner") }, onRemove: onRemove,
-                         onMove: { id in onMove(id, day, "dinner") })
+                ForEach(activeSlots, id: \.self) { slot in
+                    SlotCell(
+                        label:    SLOT_LABELS[slot] ?? slot,
+                        items:    itemsForSlot(slot),
+                        onAdd:    { onAdd(slot) },
+                        onRemove: onRemove,
+                        onMove:   { id in onMove(id, day, slot) }
+                    )
+                }
             }
         }
     }
@@ -270,7 +280,7 @@ private struct DistributeButton: View {
                         Button("Annuler") { showPicker = false }
                     }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Planifier") {
+                        Button("Organiser avec VITA") {
                             showPicker = false
                             Task { await vm.distribute(recipeIds: Array(selectedIds)) }
                         }
@@ -351,6 +361,7 @@ private struct WeekMacroSummary: View {
             MacroChip(label: "Protéines", value: macros.proteinG.map { formatG($0) } ?? "—",  color: VitaColor.accentDark)
             MacroChip(label: "Glucides",  value: macros.carbsG.map   { formatG($0) } ?? "—",  color: VitaColor.neutral)
             MacroChip(label: "Lipides",   value: macros.fatG.map     { formatG($0) } ?? "—",  color: VitaColor.textSecondary)
+            MacroChip(label: "Fibres",    value: macros.fiberG.map   { formatG($0) } ?? "—",  color: Color.teal)
         }
         .padding(VitaSpacing.sm)
         .background(VitaColor.surfaceHigh)
@@ -383,6 +394,11 @@ private struct DayMacroBar: View {
                 Text("L \(formatG(f))")
                     .font(VitaFont.caption())
                     .foregroundStyle(VitaColor.textSecondary)
+            }
+            if let fi = macros.fiberG {
+                Text("Fi \(formatG(fi))")
+                    .font(VitaFont.caption())
+                    .foregroundStyle(Color.teal)
             }
         }
         .padding(.horizontal, VitaSpacing.sm)

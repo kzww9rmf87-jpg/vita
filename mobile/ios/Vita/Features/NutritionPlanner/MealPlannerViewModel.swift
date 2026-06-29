@@ -30,7 +30,7 @@ struct MealPlanDetail: Codable {
 struct MealPlanItem: Identifiable, Codable, Equatable {
     let id: String
     var dayOfWeek: Int        // 0 = lundi, 6 = dimanche (var pour mise à jour optimiste)
-    var mealSlot: String      // "lunch" | "dinner" (var pour mise à jour optimiste)
+    var mealSlot: String      // "breakfast" | "lunch" | "dinner" | "snack" (var pour mise à jour optimiste)
     let recipeId: String?
     let recipeName: String
     let portions: Double
@@ -181,6 +181,14 @@ final class MealPlannerViewModel: ObservableObject {
 
     func items(day: Int, slot: String) -> [MealPlanItem] {
         currentPlan?.items.filter { $0.dayOfWeek == day && $0.mealSlot == slot } ?? []
+    }
+
+    // §1 — Créneaux actifs selon le plan courant (lunch + dinner toujours présents)
+    var activeMealSlots: [String] {
+        let allSlots: [String] = ["breakfast", "lunch", "dinner", "snack"]
+        let base: Set<String>  = ["lunch", "dinner"]
+        let inPlan = Set(currentPlan?.items.map { $0.mealSlot } ?? [])
+        return allSlots.filter { base.contains($0) || inPlan.contains($0) }
     }
 }
 
