@@ -89,6 +89,9 @@ final class RecipeLibraryViewModel: ObservableObject {
     @Published var formCarbsG: String = ""
     @Published var formFatG: String = ""
     @Published var formFiberG: String = ""
+    // Prefill IA
+    @Published var isPrefilling = false
+    @Published var prefillError: String? = nil
 
     func loadRecipes() async {
         isLoading = true
@@ -152,11 +155,57 @@ final class RecipeLibraryViewModel: ObservableObject {
         formCookMinutes = nil
         formNotes = ""
         formIngredients = []
-        formCalories = ""
-        formProteinG = ""
-        formCarbsG   = ""
-        formFatG     = ""
-        formFiberG   = ""
+        formCalories   = ""
+        formProteinG   = ""
+        formCarbsG     = ""
+        formFatG       = ""
+        formFiberG     = ""
+        prefillError   = nil
+    }
+
+    func prefill() async {
+        let name = formName.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+        isPrefilling = true
+        prefillError = nil
+        defer { isPrefilling = false }
+        do {
+            struct PrefillRequest: Encodable {
+                let recipeName: String
+                let servings: Int
+            }
+            struct PrefillIngredient: Decodable {
+                let name: String
+                let quantityG: Double?
+                let sortOrder: Int
+            }
+            struct PrefillResponse: Decodable {
+                let prepMinutes: Int?
+                let cookMinutes: Int?
+                let notes: String?
+                let caloriesPerServing: Int?
+                let proteinGPerServing: Double?
+                let carbsGPerServing: Double?
+                let fatGPerServing: Double?
+                let fiberGPerServing: Double?
+                let ingredients: [PrefillIngredient]
+            }
+            let body = PrefillRequest(recipeName: name, servings: formServings)
+            let result: PrefillResponse = try await APIClient.shared.post("/nutrition/recipes/prefill", body: body)
+            formPrepMinutes  = result.prepMinutes
+            formCookMinutes  = result.cookMinutes
+            formNotes        = result.notes ?? formNotes
+            formCalories     = result.caloriesPerServing.map(String.init) ?? ""
+            formProteinG     = result.proteinGPerServing.map { String(format: "%.1f", $0) } ?? ""
+            formCarbsG       = result.carbsGPerServing.map   { String(format: "%.1f", $0) } ?? ""
+            formFatG         = result.fatGPerServing.map     { String(format: "%.1f", $0) } ?? ""
+            formFiberG       = result.fiberGPerServing.map   { String(format: "%.1f", $0) } ?? ""
+            formIngredients  = result.ingredients.map {
+                RecipeIngredientCreate(name: $0.name, quantityG: $0.quantityG, sortOrder: $0.sortOrder)
+            }
+        } catch {
+            prefillError = "VITA n'a pas pu générer la recette. Tu peux remplir les champs manuellement."
+        }
     }
 
     func addIngredient(name: String, quantityG: Double?) {

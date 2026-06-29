@@ -453,6 +453,40 @@ export async function calculateNutritionTargets(
   )
 }
 
+// ── Recipe Prefill (Sprint 9.2) ───────────────────────────────────────────────
+
+export interface PrefillIngredient {
+  name:       string
+  quantity_g: number | null
+  sort_order: number
+}
+
+export interface RecipePrefillResult {
+  name:                    string
+  servings:                number
+  prep_minutes:            number | null
+  cook_minutes:            number | null
+  notes:                   string | null
+  calories_per_serving:    number | null
+  protein_g_per_serving:   number | null
+  carbs_g_per_serving:     number | null
+  fat_g_per_serving:       number | null
+  fiber_g_per_serving:     number | null
+  ingredients:             PrefillIngredient[]
+  is_estimated:            true
+}
+
+export async function requestRecipePrefill(
+  recipeName: string,
+  servings?: number,
+): Promise<RecipePrefillResult> {
+  // Génération Claude (haiku) : ~5-10s — timeout standard suffit.
+  return callAIEngine<{ recipe_name: string; servings?: number }, RecipePrefillResult>(
+    '/meal-planner/recipe-prefill',
+    { recipe_name: recipeName, servings },
+  )
+}
+
 export async function analyzeJournalEntry(
   userId: string,
   content: string,

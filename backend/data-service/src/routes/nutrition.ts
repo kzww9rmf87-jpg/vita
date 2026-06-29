@@ -13,6 +13,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { query, queryOne } from '../db.js'
+import { requestRecipePrefill, AIEngineError } from '../ai-client.js'
 
 // ── Schémas ───────────────────────────────────────────────────────────────────
 
@@ -407,6 +408,32 @@ export const nutritionRoutes: FastifyPluginAsync = async (app) => {
       [id]
     )
     return reply.send({ ...recipe, ingredients })
+  })
+
+  // ── Prefill IA ─────────────────────────────────────────────────────────────
+
+  const RecipePrefillSchema = z.object({
+    recipeName: z.string().min(1).max(200),
+    servings:   z.number().int().min(1).max(20).optional(),
+  })
+
+  app.post('/recipes/prefill', async (req, reply) => {
+    const parsed = RecipePrefillSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() })
+    }
+    const { recipeName, servings } = parsed.data
+
+    try {
+      const result = await requestRecipePrefill(recipeName, servings)
+      return reply.send(result)
+    } catch (err) {
+      if (err instanceof AIEngineError) {
+        const status = err.status >= 500 ? 503 : err.status
+        return reply.status(status).send({ error: 'AI_ENGINE_UNAVAILABLE', message: err.message })
+      }
+      return reply.status(503).send({ error: 'AI_ENGINE_UNAVAILABLE' })
+    }
   })
 
   app.delete('/recipes/:id', async (req, reply) => {

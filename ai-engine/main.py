@@ -27,7 +27,7 @@ from first_encounter import (
 from meal_planner import (
     MealPlanInput, MealPlanner,
     MealPlannerAgent, SmartMealPlanInput, NutritionProfile, RecipeWithMacros,
-    calculate_targets,
+    calculate_targets, prefill_recipe,
 )
 
 settings = get_settings()
@@ -335,6 +335,28 @@ async def meal_planner_calculate_targets(
         objective=req.objective,
     )
     return targets.to_dict() if targets else {}
+
+
+class RecipePrefillRequest(BaseModel):
+    recipe_name: str
+    servings:    Optional[int] = 4
+
+
+@app.post("/meal-planner/recipe-prefill")
+async def meal_planner_recipe_prefill(
+    req: RecipePrefillRequest,
+    _: bool = Depends(verify_service_token),
+):
+    """
+    Génère une ébauche de recette depuis son nom.
+    Toutes les valeurs nutritionnelles sont des estimations — jamais des certitudes.
+    """
+    try:
+        servings = max(1, min(req.servings or 4, 20))
+        result = await prefill_recipe(req.recipe_name, servings)
+        return result.model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

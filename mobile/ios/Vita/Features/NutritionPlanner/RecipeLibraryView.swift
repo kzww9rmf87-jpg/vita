@@ -257,6 +257,37 @@ private struct RecipeAddSheet: View {
                             .frame(width: 60)
                     }
                 }
+                Section {
+                    Button {
+                        Task { await vm.prefill() }
+                    } label: {
+                        HStack {
+                            if vm.isPrefilling {
+                                ProgressView().scaleEffect(0.8)
+                                Text("VITA réfléchit…")
+                            } else {
+                                Image(systemName: "sparkles")
+                                Text("Pré-remplir avec VITA")
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(VitaColor.accent)
+                    .disabled(
+                        vm.formName.trimmingCharacters(in: .whitespaces).isEmpty || vm.isPrefilling
+                    )
+
+                    if let err = vm.prefillError {
+                        Text(err)
+                            .font(VitaFont.caption())
+                            .foregroundStyle(VitaColor.warning)
+                    } else {
+                        Text("VITA peut estimer les ingrédients et valeurs nutritionnelles. Tu peux tout modifier avant d'enregistrer.")
+                            .font(VitaFont.caption())
+                            .foregroundStyle(VitaColor.textSecondary)
+                    }
+                }
                 Section("Notes") {
                     TextField("Notes optionnelles", text: $vm.formNotes, axis: .vertical)
                         .lineLimit(3, reservesSpace: true)
