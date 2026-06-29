@@ -14,9 +14,13 @@ import type { RecipeWithMacros, NutritionProfilePayload } from '../ai-client.js'
 // ── Schémas ───────────────────────────────────────────────────────────────────
 
 const MealPlanSchema = z.object({
-  week_start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  week_start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  weekStart:  z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   name:       z.string().max(200).optional(),
   notes:      z.string().max(1000).optional(),
+}).refine(d => d.week_start != null || d.weekStart != null, {
+  message: 'Required',
+  path: ['week_start'],
 })
 
 const MealPlanItemSchema = z.object({
@@ -31,10 +35,15 @@ const MealPlanItemSchema = z.object({
 
 const ShoppingItemPatchSchema = z.object({
   is_checked: z.boolean().optional(),
+  isChecked:  z.boolean().optional(),
 })
 
 const DistributeSchema = z.object({
-  recipe_ids: z.array(z.string().uuid()).min(1),
+  recipe_ids: z.array(z.string().uuid()).min(1).optional(),
+  recipeIds:  z.array(z.string().uuid()).min(1).optional(),
+}).refine(d => d.recipe_ids != null || d.recipeIds != null, {
+  message: 'Required',
+  path: ['recipe_ids'],
 })
 
 // ── Catégorisation automatique des ingrédients ────────────────────────────────
@@ -92,6 +101,7 @@ export const mealPlanRoutes: FastifyPluginAsync = async (app) => {
     }
     const userId = (req.user as { sub: string }).sub
     const body = parsed.data
+    const weekStart = body.week_start ?? body.weekStart!
 
     const row = await queryOne<{ id: string }>(
       `INSERT INTO meal_plans (user_id, week_start, name, notes)
@@ -100,7 +110,7 @@ export const mealPlanRoutes: FastifyPluginAsync = async (app) => {
          name  = COALESCE(EXCLUDED.name, meal_plans.name),
          notes = COALESCE(EXCLUDED.notes, meal_plans.notes)
        RETURNING id`,
-      [userId, body.week_start, body.name ?? null, body.notes ?? null]
+      [userId, weekStart, body.name ?? null, body.notes ?? null]
     )
     return reply.status(201).send({ id: row!.id })
   })
@@ -270,7 +280,7 @@ export const mealPlanRoutes: FastifyPluginAsync = async (app) => {
     }
     const userId = (req.user as { sub: string }).sub
     const { id } = req.params as { id: string }
-    const { recipe_ids: recipeIds } = parsed.data
+    const recipeIds = parsed.data.recipe_ids ?? parsed.data.recipeIds ?? []
 
     const plan = await queryOne(
       `SELECT id FROM meal_plans WHERE id = $1 AND user_id = $2`,
@@ -468,10 +478,11 @@ export const mealPlanRoutes: FastifyPluginAsync = async (app) => {
     )
     if (!item) return reply.status(404).send({ error: 'NOT_FOUND' })
 
-    if (parsed.data.is_checked !== undefined) {
+    const isChecked = parsed.data.is_checked ?? parsed.data.isChecked
+    if (isChecked !== undefined) {
       await query(
         `UPDATE shopping_list_items SET is_checked = $2 WHERE id = $1`,
-        [itemId, parsed.data.is_checked]
+        [itemId, isChecked]
       )
     }
     return reply.status(200).send({ id: itemId })

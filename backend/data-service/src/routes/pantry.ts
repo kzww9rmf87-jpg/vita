@@ -3,8 +3,12 @@ import { z } from 'zod'
 import { query, queryOne } from '../db.js'
 
 const PantryItemSchema = z.object({
-  ingredient_name: z.string().min(1).max(200),
+  ingredient_name: z.string().min(1).max(200).optional(),
+  ingredientName:  z.string().min(1).max(200).optional(),
   notes:           z.string().max(500).optional(),
+}).refine(d => d.ingredient_name != null || d.ingredientName != null, {
+  message: 'Required',
+  path: ['ingredient_name'],
 })
 
 export const pantryRoutes: FastifyPluginAsync = async (app) => {
@@ -35,7 +39,7 @@ export const pantryRoutes: FastifyPluginAsync = async (app) => {
        ON CONFLICT (user_id, LOWER(ingredient_name)) DO UPDATE SET
          notes = EXCLUDED.notes
        RETURNING id`,
-      [userId, body.ingredient_name.trim(), body.notes ?? null]
+      [userId, (body.ingredient_name ?? body.ingredientName!).trim(), body.notes ?? null]
     )
     return reply.status(201).send({ id: row!.id })
   })

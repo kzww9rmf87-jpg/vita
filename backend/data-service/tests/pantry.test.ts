@@ -95,7 +95,7 @@ describe('POST /pantry', () => {
     expect(args[1]).toBe('Sel')
   })
 
-  // Régression : iOS envoie ingredient_name (snake_case via JSONEncoder.vita)
+  // Régression : iOS envoie ingredient_name (snake_case — si struct Encodable)
   it('régression iOS — payload snake_case ingredient_name accepté', async () => {
     ;(queryOne as any).mockResolvedValue({ id: 'pantry-regress' })
     const app = await makeApp()
@@ -106,6 +106,19 @@ describe('POST /pantry', () => {
     expect(res.statusCode).toBe(201)
     const args: unknown[] = (queryOne as any).mock.calls[0][1]
     expect(args[1]).toBe('Ail')
+  })
+
+  // Régression : iOS envoie ingredientName (dict literal — NON converti par JSONEncoder.vita)
+  it('régression iOS — payload camelCase ingredientName (dict literal) accepté', async () => {
+    ;(queryOne as any).mockResolvedValue({ id: 'pantry-camel' })
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'POST', url: '/pantry',
+      payload: { ingredientName: 'Huile d\'olive' },
+    })
+    expect(res.statusCode).toBe(201)
+    const args: unknown[] = (queryOne as any).mock.calls[0][1]
+    expect(args[1]).toBe("Huile d'olive")
   })
 })
 

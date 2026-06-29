@@ -91,9 +91,30 @@ describe('POST /meal-plans', () => {
       payload: { week_start: '2026-06-30', name: 'Semaine juin' },
     })
     expect(res.statusCode).toBe(201)
-    // week_start doit être passé en 2ème argument à la DB
     const args: unknown[] = (queryOne as any).mock.calls[0][1]
     expect(args[1]).toBe('2026-06-30')
+  })
+
+  // Régression : iOS envoie weekStart (dict literal — NON converti par JSONEncoder.vita)
+  it('régression iOS — payload camelCase weekStart (dict literal) accepté', async () => {
+    ;(queryOne as any).mockResolvedValue({ id: 'plan-camel' })
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'POST', url: '/meal-plans',
+      payload: { weekStart: '2026-06-29' },
+    })
+    expect(res.statusCode).toBe(201)
+    const args: unknown[] = (queryOne as any).mock.calls[0][1]
+    expect(args[1]).toBe('2026-06-29')
+  })
+
+  it('400 si weekStart format invalide (camelCase)', async () => {
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'POST', url: '/meal-plans',
+      payload: { weekStart: '29/06/2026' },
+    })
+    expect(res.statusCode).toBe(400)
   })
 })
 
@@ -376,6 +397,32 @@ describe('POST /meal-plans/:id/distribute', () => {
     expect(sql).toContain('COALESCE')
   })
 
+  // Régression : iOS envoie recipeIds (dict literal — NON converti par JSONEncoder.vita)
+  it('régression iOS — recipeIds camelCase (dict literal) accepté', async () => {
+    const recipeUUID = '33333333-3333-3333-3333-333333333333'
+    ;(queryOne as any)
+      .mockResolvedValueOnce({ id: 'p1' })
+      .mockResolvedValueOnce(null)
+    ;(query as any)
+      .mockResolvedValueOnce([
+        { id: recipeUUID, name: 'Poulet', servings: 4, prep_minutes: 20, cook_minutes: 60,
+          calories: null, protein_g: null, carbs_g: null, fat_g: null, fiber_g: null },
+      ])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([])
+    ;(requestSmartMealPlan as any).mockResolvedValue({
+      slots: [],
+      day_macros: [], week_macros: {}, used_claude: false,
+    })
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'POST', url: '/meal-plans/p1/distribute',
+      payload: { recipeIds: [recipeUUID] },
+    })
+    expect(res.statusCode).toBe(200)
+  })
+
   // Régression : iOS envoie recipe_ids (snake_case) dans distribute
   it('régression iOS — recipe_ids snake_case accepté', async () => {
     const recipeUUID = '22222222-2222-2222-2222-222222222222'
@@ -462,6 +509,18 @@ describe('PATCH /meal-plans/:id/shopping-list/:itemId', () => {
       payload: { is_checked: false },
     })
     expect(res.statusCode).toBe(404)
+  })
+
+  // Régression : iOS envoie isChecked (dict literal — NON converti par JSONEncoder.vita)
+  it('régression iOS — isChecked camelCase (dict literal) accepté', async () => {
+    ;(queryOne as any).mockResolvedValue({ id: 'sl-1' })
+    ;(query as any).mockResolvedValue([])
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'PATCH', url: '/meal-plans/p1/shopping-list/sl-1',
+      payload: { isChecked: true },
+    })
+    expect(res.statusCode).toBe(200)
   })
 
   // Régression : iOS envoie is_checked (snake_case via JSONEncoder.vita)
