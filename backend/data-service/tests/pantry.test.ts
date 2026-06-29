@@ -59,13 +59,13 @@ describe('POST /pantry', () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/pantry',
-      payload: { ingredientName: 'Huile d\'olive' },
+      payload: { ingredient_name: "Huile d'olive" },
     })
     expect(res.statusCode).toBe(201)
     expect(res.json()).toMatchObject({ id: 'pantry-new' })
   })
 
-  it('400 si ingredientName manquant', async () => {
+  it('400 si ingredient_name manquant', async () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/pantry',
@@ -75,11 +75,11 @@ describe('POST /pantry', () => {
     expect(res.json().error).toBe('VALIDATION_ERROR')
   })
 
-  it('400 si ingredientName vide', async () => {
+  it('400 si ingredient_name vide', async () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/pantry',
-      payload: { ingredientName: '' },
+      payload: { ingredient_name: '' },
     })
     expect(res.statusCode).toBe(400)
   })
@@ -89,10 +89,23 @@ describe('POST /pantry', () => {
     const app = await makeApp()
     await app.inject({
       method: 'POST', url: '/pantry',
-      payload: { ingredientName: '  Sel  ' },
+      payload: { ingredient_name: '  Sel  ' },
     })
     const args: unknown[] = (queryOne as any).mock.calls[0][1]
     expect(args[1]).toBe('Sel')
+  })
+
+  // Régression : iOS envoie ingredient_name (snake_case via JSONEncoder.vita)
+  it('régression iOS — payload snake_case ingredient_name accepté', async () => {
+    ;(queryOne as any).mockResolvedValue({ id: 'pantry-regress' })
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'POST', url: '/pantry',
+      payload: { ingredient_name: 'Ail' },
+    })
+    expect(res.statusCode).toBe(201)
+    const args: unknown[] = (queryOne as any).mock.calls[0][1]
+    expect(args[1]).toBe('Ail')
   })
 })
 

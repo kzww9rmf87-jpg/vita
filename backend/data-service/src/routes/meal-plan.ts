@@ -14,27 +14,27 @@ import type { RecipeWithMacros, NutritionProfilePayload } from '../ai-client.js'
 // ── Schémas ───────────────────────────────────────────────────────────────────
 
 const MealPlanSchema = z.object({
-  weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  name:      z.string().max(200).optional(),
-  notes:     z.string().max(1000).optional(),
+  week_start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  name:       z.string().max(200).optional(),
+  notes:      z.string().max(1000).optional(),
 })
 
 const MealPlanItemSchema = z.object({
-  dayOfWeek:  z.number().int().min(0).max(6),
-  mealSlot:   z.enum(['lunch', 'dinner']),
-  recipeId:   z.string().uuid().optional(),
-  recipeName: z.string().min(1).max(200),
-  portions:   z.number().min(0.5).max(20).default(1),
-  notes:      z.string().max(500).optional(),
-  sortOrder:  z.number().int().min(0).default(0),
+  day_of_week:  z.number().int().min(0).max(6),
+  meal_slot:    z.enum(['lunch', 'dinner']),
+  recipe_id:    z.string().uuid().optional(),
+  recipe_name:  z.string().min(1).max(200),
+  portions:     z.number().min(0.5).max(20).default(1),
+  notes:        z.string().max(500).optional(),
+  sort_order:   z.number().int().min(0).default(0),
 })
 
 const ShoppingItemPatchSchema = z.object({
-  isChecked: z.boolean().optional(),
+  is_checked: z.boolean().optional(),
 })
 
 const DistributeSchema = z.object({
-  recipeIds: z.array(z.string().uuid()).min(1),
+  recipe_ids: z.array(z.string().uuid()).min(1),
 })
 
 // ── Catégorisation automatique des ingrédients ────────────────────────────────
@@ -100,7 +100,7 @@ export const mealPlanRoutes: FastifyPluginAsync = async (app) => {
          name  = COALESCE(EXCLUDED.name, meal_plans.name),
          notes = COALESCE(EXCLUDED.notes, meal_plans.notes)
        RETURNING id`,
-      [userId, body.weekStart, body.name ?? null, body.notes ?? null]
+      [userId, body.week_start, body.name ?? null, body.notes ?? null]
     )
     return reply.status(201).send({ id: row!.id })
   })
@@ -133,8 +133,14 @@ export const mealPlanRoutes: FastifyPluginAsync = async (app) => {
 
     const items = await query(
       `SELECT mpi.id, mpi.day_of_week, mpi.meal_slot, mpi.recipe_id,
-              mpi.recipe_name, mpi.portions, mpi.notes, mpi.sort_order,
-              r.calories, r.protein_g, r.carbs_g, r.fat_g, r.fiber_g
+              mpi.recipe_name,
+              mpi.portions::FLOAT     AS portions,
+              mpi.notes, mpi.sort_order,
+              r.calories,
+              r.protein_g::FLOAT      AS protein_g,
+              r.carbs_g::FLOAT        AS carbs_g,
+              r.fat_g::FLOAT          AS fat_g,
+              r.fiber_g::FLOAT        AS fiber_g
        FROM meal_plan_items mpi
        LEFT JOIN recipes r ON r.id = mpi.recipe_id
        WHERE mpi.meal_plan_id = $1
@@ -184,9 +190,9 @@ export const mealPlanRoutes: FastifyPluginAsync = async (app) => {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
        RETURNING id`,
       [
-        id, body.dayOfWeek, body.mealSlot,
-        body.recipeId ?? null, body.recipeName,
-        body.portions, body.notes ?? null, body.sortOrder,
+        id, body.day_of_week, body.meal_slot,
+        body.recipe_id ?? null, body.recipe_name,
+        body.portions, body.notes ?? null, body.sort_order,
       ]
     )
     return reply.status(201).send({ id: row!.id })
@@ -219,13 +225,13 @@ export const mealPlanRoutes: FastifyPluginAsync = async (app) => {
       if (val !== undefined) { fields.push(`${col} = $${idx++}`); values.push(val) }
     }
 
-    addField('day_of_week',  body.dayOfWeek)
-    addField('meal_slot',    body.mealSlot)
-    addField('recipe_id',    body.recipeId)
-    addField('recipe_name',  body.recipeName)
+    addField('day_of_week',  body.day_of_week)
+    addField('meal_slot',    body.meal_slot)
+    addField('recipe_id',    body.recipe_id)
+    addField('recipe_name',  body.recipe_name)
     addField('portions',     body.portions)
     addField('notes',        body.notes)
-    addField('sort_order',   body.sortOrder)
+    addField('sort_order',   body.sort_order)
 
     if (fields.length === 0) return reply.status(400).send({ error: 'NO_FIELDS' })
 
@@ -264,7 +270,7 @@ export const mealPlanRoutes: FastifyPluginAsync = async (app) => {
     }
     const userId = (req.user as { sub: string }).sub
     const { id } = req.params as { id: string }
-    const { recipeIds } = parsed.data
+    const { recipe_ids: recipeIds } = parsed.data
 
     const plan = await queryOne(
       `SELECT id FROM meal_plans WHERE id = $1 AND user_id = $2`,
@@ -433,7 +439,9 @@ export const mealPlanRoutes: FastifyPluginAsync = async (app) => {
     if (!plan) return reply.status(404).send({ error: 'NOT_FOUND' })
 
     const items = await query(
-      `SELECT id, ingredient_name, quantity, unit, category, is_checked
+      `SELECT id, ingredient_name,
+              quantity::FLOAT AS quantity,
+              unit, category, is_checked
        FROM shopping_list_items
        WHERE meal_plan_id = $1
        ORDER BY category, ingredient_name`,
@@ -460,10 +468,10 @@ export const mealPlanRoutes: FastifyPluginAsync = async (app) => {
     )
     if (!item) return reply.status(404).send({ error: 'NOT_FOUND' })
 
-    if (parsed.data.isChecked !== undefined) {
+    if (parsed.data.is_checked !== undefined) {
       await query(
         `UPDATE shopping_list_items SET is_checked = $2 WHERE id = $1`,
-        [itemId, parsed.data.isChecked]
+        [itemId, parsed.data.is_checked]
       )
     }
     return reply.status(200).send({ id: itemId })

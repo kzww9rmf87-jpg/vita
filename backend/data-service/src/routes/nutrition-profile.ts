@@ -14,20 +14,20 @@ import { calculateNutritionTargets } from '../ai-client.js'
 // ── Schéma de validation ──────────────────────────────────────────────────────
 
 const NutritionProfileSchema = z.object({
-  objective:          z.enum(['maintain', 'lose', 'gain', 'recompose']).default('maintain'),
-  weightKg:           z.number().positive().max(500).optional(),
-  heightCm:           z.number().int().positive().max(300).optional(),
-  age:                z.number().int().min(10).max(120).optional(),
-  sex:                z.enum(['male', 'female', 'other']).optional(),
-  activityLevel:      z.enum(['sedentary', 'light', 'moderate', 'active', 'very_active']).default('moderate'),
-  mealsPerDay:        z.number().int().min(1).max(6).default(3),
-  batchCooking:       z.boolean().default(false),
-  cookTimeAvailable:  z.enum(['minimal', 'moderate', 'generous']).optional(),
-  budget:             z.enum(['low', 'medium', 'high']).optional(),
-  allergies:          z.array(z.string().max(100)).max(20).default([]),
-  intolerances:       z.array(z.string().max(100)).max(20).default([]),
-  excludedFoods:      z.array(z.string().max(100)).max(50).default([]),
-  preferredCuisines:  z.array(z.string().max(100)).max(20).default([]),
+  objective:           z.enum(['maintain', 'lose', 'gain', 'recompose']).default('maintain'),
+  weight_kg:           z.number().positive().max(500).optional(),
+  height_cm:           z.number().int().positive().max(300).optional(),
+  age:                 z.number().int().min(10).max(120).optional(),
+  sex:                 z.enum(['male', 'female', 'other']).optional(),
+  activity_level:      z.enum(['sedentary', 'light', 'moderate', 'active', 'very_active']).default('moderate'),
+  meals_per_day:       z.number().int().min(1).max(6).default(3),
+  batch_cooking:       z.boolean().default(false),
+  cook_time_available: z.enum(['minimal', 'moderate', 'generous']).optional(),
+  budget:              z.enum(['low', 'medium', 'high']).optional(),
+  allergies:           z.array(z.string().max(100)).max(20).default([]),
+  intolerances:        z.array(z.string().max(100)).max(20).default([]),
+  excluded_foods:      z.array(z.string().max(100)).max(50).default([]),
+  preferred_cuisines:  z.array(z.string().max(100)).max(20).default([]),
 })
 
 type ProfileBody = z.infer<typeof NutritionProfileSchema>
@@ -40,11 +40,17 @@ export const nutritionProfileRoutes: FastifyPluginAsync = async (app) => {
   app.get('/', async (req, reply) => {
     const userId = (req.user as { sub: string }).sub
     const profile = await queryOne(
-      `SELECT id, objective, weight_kg, height_cm, age, sex,
+      `SELECT id, objective,
+              weight_kg::FLOAT    AS weight_kg,
+              height_cm, age, sex,
               activity_level, meals_per_day, batch_cooking,
               cook_time_available, budget,
               allergies, intolerances, excluded_foods, preferred_cuisines,
-              target_calories, target_protein_g, target_carbs_g, target_fat_g, target_fiber_g,
+              target_calories,
+              target_protein_g::FLOAT AS target_protein_g,
+              target_carbs_g::FLOAT   AS target_carbs_g,
+              target_fat_g::FLOAT     AS target_fat_g,
+              target_fiber_g::FLOAT   AS target_fiber_g,
               created_at, updated_at
        FROM nutrition_profiles
        WHERE user_id = $1`,
@@ -69,15 +75,15 @@ export const nutritionProfileRoutes: FastifyPluginAsync = async (app) => {
       { target_calories: null, target_protein_g: null,
         target_carbs_g: null, target_fat_g: null, target_fiber_g: null }
 
-    if (body.weightKg && body.heightCm && body.age && body.sex) {
+    if (body.weight_kg && body.height_cm && body.age && body.sex) {
       try {
         targets = await calculateNutritionTargets({
           objective:      body.objective,
-          weight_kg:      body.weightKg,
-          height_cm:      body.heightCm,
+          weight_kg:      body.weight_kg,
+          height_cm:      body.height_cm,
           age:            body.age,
           sex:            body.sex,
-          activity_level: body.activityLevel,
+          activity_level: body.activity_level,
         })
       } catch {
         // Le calcul des cibles est optionnel — on continue sans si l'ai-engine est down
@@ -117,19 +123,19 @@ export const nutritionProfileRoutes: FastifyPluginAsync = async (app) => {
       [
         userId,
         body.objective,
-        body.weightKg ?? null,
-        body.heightCm ?? null,
+        body.weight_kg ?? null,
+        body.height_cm ?? null,
         body.age ?? null,
         body.sex ?? null,
-        body.activityLevel,
-        body.mealsPerDay,
-        body.batchCooking,
-        body.cookTimeAvailable ?? null,
+        body.activity_level,
+        body.meals_per_day,
+        body.batch_cooking,
+        body.cook_time_available ?? null,
         body.budget ?? null,
         body.allergies,
         body.intolerances,
-        body.excludedFoods,
-        body.preferredCuisines,
+        body.excluded_foods,
+        body.preferred_cuisines,
         targets.target_calories ?? null,
         targets.target_protein_g ?? null,
         targets.target_carbs_g ?? null,
@@ -165,29 +171,29 @@ export const nutritionProfileRoutes: FastifyPluginAsync = async (app) => {
     }
 
     addField('objective',           body.objective)
-    addField('weight_kg',           body.weightKg)
-    addField('height_cm',           body.heightCm)
+    addField('weight_kg',           body.weight_kg)
+    addField('height_cm',           body.height_cm)
     addField('age',                 body.age)
     addField('sex',                 body.sex)
-    addField('activity_level',      body.activityLevel)
-    addField('meals_per_day',       body.mealsPerDay)
-    addField('batch_cooking',       body.batchCooking)
-    addField('cook_time_available', body.cookTimeAvailable)
+    addField('activity_level',      body.activity_level)
+    addField('meals_per_day',       body.meals_per_day)
+    addField('batch_cooking',       body.batch_cooking)
+    addField('cook_time_available', body.cook_time_available)
     addField('budget',              body.budget)
     addField('allergies',           body.allergies)
     addField('intolerances',        body.intolerances)
-    addField('excluded_foods',      body.excludedFoods)
-    addField('preferred_cuisines',  body.preferredCuisines)
+    addField('excluded_foods',      body.excluded_foods)
+    addField('preferred_cuisines',  body.preferred_cuisines)
 
     if (fields.length === 0) return reply.status(400).send({ error: 'NO_FIELDS' })
 
     // Recalculer les cibles si les données anthropométriques changent
-    const mergedWeight  = body.weightKg  ?? (existing as any).weight_kg
-    const mergedHeight  = body.heightCm  ?? (existing as any).height_cm
-    const mergedAge     = body.age       ?? (existing as any).age
-    const mergedSex     = body.sex       ?? (existing as any).sex
-    const mergedActivity = body.activityLevel ?? (existing as any).activity_level
-    const mergedObjective = body.objective ?? (existing as any).objective
+    const mergedWeight   = body.weight_kg      ?? (existing as any).weight_kg
+    const mergedHeight   = body.height_cm      ?? (existing as any).height_cm
+    const mergedAge      = body.age            ?? (existing as any).age
+    const mergedSex      = body.sex            ?? (existing as any).sex
+    const mergedActivity = body.activity_level ?? (existing as any).activity_level
+    const mergedObjective = body.objective     ?? (existing as any).objective
 
     if (mergedWeight && mergedHeight && mergedAge && mergedSex) {
       try {

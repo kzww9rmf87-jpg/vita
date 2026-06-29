@@ -3,8 +3,8 @@ import { z } from 'zod'
 import { query, queryOne } from '../db.js'
 
 const PantryItemSchema = z.object({
-  ingredientName: z.string().min(1).max(200),
-  notes:          z.string().max(500).optional(),
+  ingredient_name: z.string().min(1).max(200),
+  notes:           z.string().max(500).optional(),
 })
 
 export const pantryRoutes: FastifyPluginAsync = async (app) => {
@@ -35,7 +35,7 @@ export const pantryRoutes: FastifyPluginAsync = async (app) => {
        ON CONFLICT (user_id, LOWER(ingredient_name)) DO UPDATE SET
          notes = EXCLUDED.notes
        RETURNING id`,
-      [userId, body.ingredientName.trim(), body.notes ?? null]
+      [userId, body.ingredient_name.trim(), body.notes ?? null]
     )
     return reply.status(201).send({ id: row!.id })
   })

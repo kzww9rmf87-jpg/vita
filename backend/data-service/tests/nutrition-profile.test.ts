@@ -39,18 +39,18 @@ const MOCK_TARGETS = {
 }
 
 const FULL_BODY = {
-  objective: 'gain',
-  weightKg: 80,
-  heightCm: 180,
-  age: 28,
-  sex: 'male',
-  activityLevel: 'moderate',
-  mealsPerDay: 3,
-  batchCooking: true,
-  allergies: [],
-  intolerances: [],
-  excludedFoods: [],
-  preferredCuisines: [],
+  objective:          'gain',
+  weight_kg:          80,
+  height_cm:          180,
+  age:                28,
+  sex:                'male',
+  activity_level:     'moderate',
+  meals_per_day:      3,
+  batch_cooking:      true,
+  allergies:          [],
+  intolerances:       [],
+  excluded_foods:     [],
+  preferred_cuisines: [],
 }
 
 // ── GET /nutrition/profile ────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ describe('POST /nutrition/profile', () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/nutrition/profile',
-      payload: { objective: 'maintain', activityLevel: 'moderate' },
+      payload: { objective: 'maintain', activity_level: 'moderate' },
     })
     expect(res.statusCode).toBe(201)
     expect(calculateNutritionTargets).not.toHaveBeenCalled()
@@ -131,11 +131,11 @@ describe('POST /nutrition/profile', () => {
     expect(res.json().error).toBe('VALIDATION_ERROR')
   })
 
-  it('400 si weightKg négatif', async () => {
+  it('400 si weight_kg négatif', async () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/nutrition/profile',
-      payload: { ...FULL_BODY, weightKg: -5 },
+      payload: { ...FULL_BODY, weight_kg: -5 },
     })
     expect(res.statusCode).toBe(400)
     expect(res.json().error).toBe('VALIDATION_ERROR')
@@ -190,7 +190,7 @@ describe('PATCH /nutrition/profile', () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'PATCH', url: '/nutrition/profile',
-      payload: { batchCooking: true },
+      payload: { batch_cooking: true },
     })
     expect(res.statusCode).toBe(404)
     expect(res.json().error).toBe('NOT_FOUND')
@@ -207,13 +207,86 @@ describe('PATCH /nutrition/profile', () => {
     expect(res.json().error).toBe('NO_FIELDS')
   })
 
-  it('400 si valeur hors plage (mealsPerDay > 6)', async () => {
+  it('400 si valeur hors plage (meals_per_day > 6)', async () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'PATCH', url: '/nutrition/profile',
-      payload: { mealsPerDay: 10 },
+      payload: { meals_per_day: 10 },
     })
     expect(res.statusCode).toBe(400)
     expect(res.json().error).toBe('VALIDATION_ERROR')
+  })
+})
+
+// ── Tests de régression contrat iOS ──────────────────────────────────────────
+
+describe('régression iOS — payload snake_case profil nutritionnel', () => {
+  beforeEach(() => { vi.resetAllMocks() })
+
+  it('POST accepte le payload snake_case complet envoyé par NutritionProfileViewModel', async () => {
+    ;(calculateNutritionTargets as any).mockResolvedValue(MOCK_TARGETS)
+    ;(queryOne as any).mockResolvedValue({ id: 'profile-snake' })
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'POST', url: '/nutrition/profile',
+      payload: {
+        objective:           'maintain',
+        weight_kg:           72.5,
+        height_cm:           175,
+        age:                 32,
+        sex:                 'female',
+        activity_level:      'active',
+        meals_per_day:       3,
+        batch_cooking:       false,
+        cook_time_available: 'moderate',
+        budget:              'medium',
+        allergies:           ['gluten'],
+        intolerances:        ['lactose'],
+        excluded_foods:      ['champignons'],
+        preferred_cuisines:  ['méditerranéenne'],
+      },
+    })
+    expect(res.statusCode).toBe(201)
+    expect(res.json()).toMatchObject({ id: 'profile-snake' })
+  })
+
+  it('PATCH accepte les champs snake_case partiels envoyés par iOS', async () => {
+    ;(queryOne as any).mockResolvedValue({
+      id: 'profile-uuid',
+      weight_kg: 72.5, height_cm: 175, age: 32, sex: 'female',
+      activity_level: 'active', objective: 'maintain',
+    })
+    ;(calculateNutritionTargets as any).mockResolvedValue(MOCK_TARGETS)
+    ;(query as any).mockResolvedValue([])
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'PATCH', url: '/nutrition/profile',
+      payload: { activity_level: 'very_active', meals_per_day: 4 },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toMatchObject({ updated: true })
+  })
+
+  // Régression NUMERIC : weight_kg NUMERIC(5,1) et target_* NUMERIC(5,1)
+  // retournés comme strings par node-postgres sans ::FLOAT cast
+  it('régression SQL GET — SELECT caste weight_kg et target_* en FLOAT', async () => {
+    ;(queryOne as any).mockResolvedValue({
+      id: 'profile-uuid',
+      objective: 'maintain',
+      weight_kg: 72.5,
+      target_calories: 2000,
+      target_protein_g: 120.0,
+      target_carbs_g: 250.0,
+      target_fat_g: 65.0,
+      target_fiber_g: 30.0,
+    })
+    const app = await makeApp()
+    await app.inject({ method: 'GET', url: '/nutrition/profile' })
+    const sql: string = (queryOne as any).mock.calls[0][0]
+    expect(sql).toContain('weight_kg::FLOAT')
+    expect(sql).toContain('target_protein_g::FLOAT')
+    expect(sql).toContain('target_carbs_g::FLOAT')
+    expect(sql).toContain('target_fat_g::FLOAT')
+    expect(sql).toContain('target_fiber_g::FLOAT')
   })
 })

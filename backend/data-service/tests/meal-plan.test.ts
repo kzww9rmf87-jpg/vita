@@ -44,13 +44,13 @@ describe('POST /meal-plans', () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/meal-plans',
-      payload: { weekStart: '2026-06-30', name: 'Semaine test' },
+      payload: { week_start: '2026-06-30', name: 'Semaine test' },
     })
     expect(res.statusCode).toBe(201)
     expect(res.json()).toMatchObject({ id: 'plan-id-1' })
   })
 
-  it('400 si weekStart manquant', async () => {
+  it('400 si week_start manquant', async () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/meal-plans',
@@ -60,11 +60,11 @@ describe('POST /meal-plans', () => {
     expect(res.json().error).toBe('VALIDATION_ERROR')
   })
 
-  it('400 si weekStart format invalide', async () => {
+  it('400 si week_start format invalide', async () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/meal-plans',
-      payload: { weekStart: '30/06/2026' },
+      payload: { week_start: '30/06/2026' },
     })
     expect(res.statusCode).toBe(400)
   })
@@ -74,12 +74,26 @@ describe('POST /meal-plans', () => {
     const app = await makeApp()
     await app.inject({
       method: 'POST', url: '/meal-plans',
-      payload: { weekStart: '2026-06-30' },
+      payload: { week_start: '2026-06-30' },
     })
     const sql: string = (queryOne as any).mock.calls[0][0]
     const args: unknown[] = (queryOne as any).mock.calls[0][1]
     expect(sql).toContain('INSERT INTO meal_plans')
     expect(args[0]).toBe('user-uuid-123')
+  })
+
+  // Régression : iOS envoie week_start (snake_case via JSONEncoder.vita)
+  it('régression iOS — payload snake_case week_start accepté', async () => {
+    ;(queryOne as any).mockResolvedValue({ id: 'plan-regress' })
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'POST', url: '/meal-plans',
+      payload: { week_start: '2026-06-30', name: 'Semaine juin' },
+    })
+    expect(res.statusCode).toBe(201)
+    // week_start doit être passé en 2ème argument à la DB
+    const args: unknown[] = (queryOne as any).mock.calls[0][1]
+    expect(args[1]).toBe('2026-06-30')
   })
 })
 
@@ -125,6 +139,36 @@ describe('GET /meal-plans/:id', () => {
     const res = await app.inject({ method: 'GET', url: '/meal-plans/unknown' })
     expect(res.statusCode).toBe(404)
   })
+
+  // Régression NUMERIC : portions NUMERIC(4,1) retourné comme string par node-postgres
+  // Le ::FLOAT cast dans le SQL garantit un number JS avant sérialisation JSON
+  it('régression NUMERIC — portions retournées comme number dans les items', async () => {
+    ;(queryOne as any).mockResolvedValue({ id: 'p1', week_start: '2026-06-30' })
+    ;(query as any).mockResolvedValue([
+      {
+        id: 'item-1', day_of_week: 1, meal_slot: 'lunch',
+        recipe_name: 'Poulet', portions: 1.5,  // simule ::FLOAT (number JS)
+        protein_g: 30.0, carbs_g: 20.0, fat_g: 10.0, fiber_g: 2.0,
+      },
+    ])
+    const app = await makeApp()
+    const res = await app.inject({ method: 'GET', url: '/meal-plans/p1' })
+    expect(res.statusCode).toBe(200)
+    const body = res.json()
+    expect(body.items[0]).toHaveProperty('portions')
+    expect(body.items[0]).toHaveProperty('protein_g')
+  })
+
+  // Régression SQL : le SELECT doit inclure ::FLOAT sur portions et macros JOIN
+  it('régression SQL — SELECT caste portions et macros en FLOAT', async () => {
+    ;(queryOne as any).mockResolvedValue({ id: 'p1', week_start: '2026-06-30' })
+    ;(query as any).mockResolvedValue([])
+    const app = await makeApp()
+    await app.inject({ method: 'GET', url: '/meal-plans/p1' })
+    const sql: string = (query as any).mock.calls[0][0]
+    expect(sql).toContain('portions::FLOAT')
+    expect(sql).toContain('protein_g::FLOAT')
+  })
 })
 
 // ── DELETE /meal-plans/:id ────────────────────────────────────────────────────
@@ -154,31 +198,31 @@ describe('POST /meal-plans/:id/items', () => {
 
   it('201 ajoute un item', async () => {
     ;(queryOne as any)
-      .mockResolvedValueOnce({ id: 'p1' })         // vérification ownership
-      .mockResolvedValueOnce({ id: 'item-new' })   // INSERT item
+      .mockResolvedValueOnce({ id: 'p1' })
+      .mockResolvedValueOnce({ id: 'item-new' })
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/meal-plans/p1/items',
-      payload: { dayOfWeek: 1, mealSlot: 'lunch', recipeName: 'Salade niçoise', portions: 2 },
+      payload: { day_of_week: 1, meal_slot: 'lunch', recipe_name: 'Salade niçoise', portions: 2 },
     })
     expect(res.statusCode).toBe(201)
     expect(res.json()).toMatchObject({ id: 'item-new' })
   })
 
-  it('400 si dayOfWeek hors bornes', async () => {
+  it('400 si day_of_week hors bornes', async () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/meal-plans/p1/items',
-      payload: { dayOfWeek: 7, mealSlot: 'lunch', recipeName: 'Test', portions: 1 },
+      payload: { day_of_week: 7, meal_slot: 'lunch', recipe_name: 'Test', portions: 1 },
     })
     expect(res.statusCode).toBe(400)
   })
 
-  it('400 si mealSlot invalide', async () => {
+  it('400 si meal_slot invalide', async () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/meal-plans/p1/items',
-      payload: { dayOfWeek: 0, mealSlot: 'breakfast', recipeName: 'Test', portions: 1 },
+      payload: { day_of_week: 0, meal_slot: 'breakfast', recipe_name: 'Test', portions: 1 },
     })
     expect(res.statusCode).toBe(400)
   })
@@ -188,9 +232,36 @@ describe('POST /meal-plans/:id/items', () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/meal-plans/unknown/items',
-      payload: { dayOfWeek: 0, mealSlot: 'dinner', recipeName: 'Test', portions: 1 },
+      payload: { day_of_week: 0, meal_slot: 'dinner', recipe_name: 'Test', portions: 1 },
     })
     expect(res.statusCode).toBe(404)
+  })
+
+  // Régression : payload exact iOS (MealPlanItemCreate encodé en snake_case)
+  it('régression iOS — payload snake_case complet accepté', async () => {
+    ;(queryOne as any)
+      .mockResolvedValueOnce({ id: 'p1' })
+      .mockResolvedValueOnce({ id: 'item-regress' })
+    const app = await makeApp()
+    const recipeUUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+    const res = await app.inject({
+      method: 'POST', url: '/meal-plans/p1/items',
+      payload: {
+        day_of_week: 2,
+        meal_slot:   'dinner',
+        recipe_id:   recipeUUID,
+        recipe_name: 'Lasagnes bolognaises',
+        portions:    1.5,
+        sort_order:  0,
+      },
+    })
+    expect(res.statusCode).toBe(201)
+    // Vérifier que les valeurs snake_case sont bien transmises à la DB
+    const args: unknown[] = (queryOne as any).mock.calls[1][1]
+    expect(args[1]).toBe(2)          // day_of_week
+    expect(args[2]).toBe('dinner')   // meal_slot
+    expect(args[3]).toBe(recipeUUID) // recipe_id
+    expect(args[4]).toBe('Lasagnes bolognaises') // recipe_name
   })
 })
 
@@ -222,16 +293,16 @@ describe('POST /meal-plans/:id/distribute', () => {
   it('200 distribue les recettes via AI engine', async () => {
     const recipeUUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
     ;(queryOne as any)
-      .mockResolvedValueOnce({ id: 'p1' })  // SELECT meal_plan
-      .mockResolvedValueOnce(null)           // SELECT nutrition_profiles
+      .mockResolvedValueOnce({ id: 'p1' })
+      .mockResolvedValueOnce(null)
     ;(query as any)
       .mockResolvedValueOnce([
         { id: recipeUUID, name: 'Poulet', servings: 4, prep_minutes: 20, cook_minutes: 60,
           calories: null, protein_g: null, carbs_g: null, fat_g: null, fiber_g: null },
-      ])                               // SELECT recipes
-      .mockResolvedValueOnce([])       // SELECT pantry
-      .mockResolvedValueOnce([])       // DELETE existing items
-      .mockResolvedValue([])           // INSERT items (×1)
+      ])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([])
 
     ;(requestSmartMealPlan as any).mockResolvedValue({
       slots: [
@@ -246,26 +317,26 @@ describe('POST /meal-plans/:id/distribute', () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/meal-plans/p1/distribute',
-      payload: { recipeIds: [recipeUUID] },
+      payload: { recipe_ids: [recipeUUID] },
     })
     expect(res.statusCode).toBe(200)
     expect(res.json()).toMatchObject({ itemsCreated: 1 })
   })
 
-  it('400 si recipeIds vide', async () => {
+  it('400 si recipe_ids vide', async () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/meal-plans/p1/distribute',
-      payload: { recipeIds: [] },
+      payload: { recipe_ids: [] },
     })
     expect(res.statusCode).toBe(400)
   })
 
-  it('400 si recipeIds contient des non-UUID', async () => {
+  it('400 si recipe_ids contient des non-UUID', async () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/meal-plans/p1/distribute',
-      payload: { recipeIds: ['not-a-uuid'] },
+      payload: { recipe_ids: ['not-a-uuid'] },
     })
     expect(res.statusCode).toBe(400)
     expect(res.json().error).toBe('VALIDATION_ERROR')
@@ -274,37 +345,61 @@ describe('POST /meal-plans/:id/distribute', () => {
   it('503 si AI Engine est indisponible', async () => {
     const recipeUUID = '11111111-1111-1111-1111-111111111111'
     ;(queryOne as any)
-      .mockResolvedValueOnce({ id: 'p1' })  // SELECT meal_plan
-      .mockResolvedValueOnce(null)           // SELECT nutrition_profiles
+      .mockResolvedValueOnce({ id: 'p1' })
+      .mockResolvedValueOnce(null)
     ;(query as any)
       .mockResolvedValueOnce([
         { id: recipeUUID, name: 'Poulet', servings: 4, prep_minutes: 20, cook_minutes: 60,
           calories: null, protein_g: null, carbs_g: null, fat_g: null, fiber_g: null },
       ])
-      .mockResolvedValueOnce([])     // pantry
+      .mockResolvedValueOnce([])
     ;(requestSmartMealPlan as any).mockRejectedValue(Object.assign(new Error('AI engine unreachable'), { code: 'AI_ENGINE_UNAVAILABLE' }))
 
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/meal-plans/p1/distribute',
-      payload: { recipeIds: [recipeUUID] },
+      payload: { recipe_ids: [recipeUUID] },
     })
     expect(res.statusCode).toBe(503)
     expect(res.json().error).toBe('AI_ENGINE_UNAVAILABLE')
   })
 
   it('ON CONFLICT préserve le nom existant si name absent du body', async () => {
-    // Test que la route POST / n'efface pas un nom existant si on envoie weekStart seul
     ;(queryOne as any).mockResolvedValue({ id: 'plan-existing' })
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST', url: '/meal-plans',
-      payload: { weekStart: '2026-06-30' },
+      payload: { week_start: '2026-06-30' },
     })
     expect(res.statusCode).toBe(201)
-    // Vérifier que le SQL utilise COALESCE
     const sql: string = (queryOne as any).mock.calls[0][0]
     expect(sql).toContain('COALESCE')
+  })
+
+  // Régression : iOS envoie recipe_ids (snake_case) dans distribute
+  it('régression iOS — recipe_ids snake_case accepté', async () => {
+    const recipeUUID = '22222222-2222-2222-2222-222222222222'
+    ;(queryOne as any)
+      .mockResolvedValueOnce({ id: 'p1' })
+      .mockResolvedValueOnce(null)
+    ;(query as any)
+      .mockResolvedValueOnce([
+        { id: recipeUUID, name: 'Quiche', servings: 6, prep_minutes: 15, cook_minutes: 35,
+          calories: 400, protein_g: 20.0, carbs_g: 30.0, fat_g: 22.0, fiber_g: 3.0 },
+      ])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([])
+    ;(requestSmartMealPlan as any).mockResolvedValue({
+      slots: [],
+      day_macros: [], week_macros: {}, used_claude: false,
+    })
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'POST', url: '/meal-plans/p1/distribute',
+      payload: { recipe_ids: [recipeUUID] },
+    })
+    expect(res.statusCode).toBe(200)
   })
 })
 
@@ -331,6 +426,16 @@ describe('GET /meal-plans/:id/shopping-list', () => {
     const res = await app.inject({ method: 'GET', url: '/meal-plans/unknown/shopping-list' })
     expect(res.statusCode).toBe(404)
   })
+
+  // Régression SQL : le SELECT doit caster quantity en FLOAT
+  it('régression SQL — SELECT caste quantity en FLOAT', async () => {
+    ;(queryOne as any).mockResolvedValue({ id: 'p1' })
+    ;(query as any).mockResolvedValue([])
+    const app = await makeApp()
+    await app.inject({ method: 'GET', url: '/meal-plans/p1/shopping-list' })
+    const sql: string = (query as any).mock.calls[0][0]
+    expect(sql).toContain('quantity::FLOAT')
+  })
 })
 
 // ── PATCH /meal-plans/:id/shopping-list/:itemId ───────────────────────────────
@@ -344,7 +449,7 @@ describe('PATCH /meal-plans/:id/shopping-list/:itemId', () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'PATCH', url: '/meal-plans/p1/shopping-list/sl-1',
-      payload: { isChecked: true },
+      payload: { is_checked: true },
     })
     expect(res.statusCode).toBe(200)
   })
@@ -354,8 +459,24 @@ describe('PATCH /meal-plans/:id/shopping-list/:itemId', () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'PATCH', url: '/meal-plans/p1/shopping-list/nope',
-      payload: { isChecked: false },
+      payload: { is_checked: false },
     })
     expect(res.statusCode).toBe(404)
+  })
+
+  // Régression : iOS envoie is_checked (snake_case via JSONEncoder.vita)
+  it('régression iOS — is_checked snake_case transmis à la DB', async () => {
+    ;(queryOne as any).mockResolvedValue({ id: 'sl-1' })
+    ;(query as any).mockResolvedValue([])
+    const app = await makeApp()
+    await app.inject({
+      method: 'PATCH', url: '/meal-plans/p1/shopping-list/sl-1',
+      payload: { is_checked: true },
+    })
+    const updateCall = (query as any).mock.calls.find(
+      (c: unknown[]) => (c[0] as string).includes('UPDATE shopping_list_items')
+    )
+    expect(updateCall).toBeDefined()
+    expect(updateCall![1][1]).toBe(true)
   })
 })
