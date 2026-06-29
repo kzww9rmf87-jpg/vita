@@ -201,7 +201,7 @@ describe('GET /nutrition/food-items', () => {
 describe('POST /nutrition/recipes', () => {
   beforeEach(() => { vi.clearAllMocks() })
 
-  it('creates a recipe', async () => {
+  it('creates a recipe (snake_case payload)', async () => {
     ;(queryOne as any).mockResolvedValue({ id: 'recipe-1' })
     ;(query as any).mockResolvedValue([])
     const app = await makeApp()
@@ -211,7 +211,7 @@ describe('POST /nutrition/recipes', () => {
       payload: {
         name: 'Riz au poulet',
         servings: 2,
-        ingredients: [{ name: 'Riz', quantityG: 100 }],
+        ingredients: [{ name: 'Riz', quantity_g: 100, sort_order: 0 }],
       },
     })
     expect(res.statusCode).toBe(201)
@@ -225,6 +225,83 @@ describe('POST /nutrition/recipes', () => {
       payload: { servings: 2 },
     })
     expect(res.statusCode).toBe(400)
+  })
+
+  // Régression : payload exact envoyé par iOS après pré-remplissage IA
+  it('régression iOS — payload snake_case complet (Pâtes bolognaises)', async () => {
+    ;(queryOne as any).mockResolvedValue({ id: 'recipe-bolognaise' })
+    ;(query as any).mockResolvedValue([])
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/nutrition/recipes',
+      payload: {
+        name: 'Pâtes bolognaises',
+        servings: 4,
+        prep_minutes: 15,
+        cook_minutes: 30,
+        notes: 'Recette classique.',
+        calories: 520,
+        protein_g: 30.0,
+        carbs_g: 55.0,
+        fat_g: 18.0,
+        fiber_g: 4.0,
+        ingredients: [
+          { name: 'Pâtes sèches',  quantity_g: 400, sort_order: 0 },
+          { name: 'Bœuf haché',    quantity_g: 500, sort_order: 1 },
+          { name: 'Sauce tomate',  quantity_g: 400, sort_order: 2 },
+        ],
+      },
+    })
+    expect(res.statusCode).toBe(201)
+    expect(res.json()).toMatchObject({ id: 'recipe-bolognaise' })
+  })
+
+  it('régression iOS — quantity_g transmis à la DB sans NOT NULL violation', async () => {
+    ;(queryOne as any).mockResolvedValue({ id: 'recipe-x' })
+    ;(query as any).mockResolvedValue([])
+    const app = await makeApp()
+    await app.inject({
+      method: 'POST',
+      url: '/nutrition/recipes',
+      payload: {
+        name: 'Soupe',
+        servings: 2,
+        ingredients: [{ name: 'Pâtes sèches', quantity_g: 100, sort_order: 0 }],
+      },
+    })
+    // Le 2e appel query est l'INSERT recipe_ingredients
+    const insertCall = (query as any).mock.calls.find(
+      (c: unknown[]) => (c[0] as string).includes('recipe_ingredients')
+    )
+    expect(insertCall).toBeDefined()
+    // quantity_g (index 3) doit être 100, pas null ni undefined
+    expect(insertCall![1][3]).toBe(100)
+  })
+
+  it('régression iOS — macros snake_case enregistrées', async () => {
+    ;(queryOne as any).mockResolvedValue({ id: 'recipe-y' })
+    ;(query as any).mockResolvedValue([])
+    const app = await makeApp()
+    await app.inject({
+      method: 'POST',
+      url: '/nutrition/recipes',
+      payload: {
+        name: 'Quiche',
+        servings: 4,
+        calories: 400,
+        protein_g: 20.0,
+        carbs_g: 30.0,
+        fat_g: 22.0,
+      },
+    })
+    const insertRecipe = (queryOne as any).mock.calls[0]
+    const args: unknown[] = insertRecipe[1]
+    // calories index 4, protein index 5, carbs index 6, fat index 7
+    expect(args[4]).toBe(400)   // calories
+    expect(args[5]).toBe(20.0)  // protein_g
+    expect(args[6]).toBe(30.0)  // carbs_g
+    expect(args[7]).toBe(22.0)  // fat_g
   })
 })
 
