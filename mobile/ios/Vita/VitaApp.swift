@@ -47,6 +47,11 @@ struct MainTabView: View {
                     Label("VITA", systemImage: "brain.head.profile")
                 }
 
+            NutritionPlannerHomeView()
+                .tabItem {
+                    Label("Repas", systemImage: "fork.knife")
+                }
+
             TimelineView()
                 .tabItem {
                     Label("Agenda", systemImage: "clock.fill")
