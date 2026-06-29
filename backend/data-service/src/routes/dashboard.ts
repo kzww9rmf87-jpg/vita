@@ -28,9 +28,11 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
       ),
       queryOne(
         `SELECT
-           AVG(calories)::INT           AS avg_calories,
-           AVG(protein_g)::FLOAT8       AS avg_protein,
-           AVG(adherence_score)::FLOAT8 AS avg_adherence
+           AVG(calories)::INT     AS avg_calories,
+           AVG(protein_g)::FLOAT8 AS avg_protein,
+           AVG(carbs_g)::FLOAT8   AS avg_carbs,
+           AVG(fat_g)::FLOAT8     AS avg_fat,
+           COUNT(*)::INT          AS days_logged
          FROM nutrition_daily
          WHERE user_id = $1 AND date >= CURRENT_DATE - 7`,
         [userId]

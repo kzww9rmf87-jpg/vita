@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 private let DAYS_FR = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
 
@@ -24,8 +25,12 @@ struct MealPlannerView: View {
                                     dayLabel: DAYS_FR[day],
                                     lunchItems: vm.items(day: day, slot: "lunch"),
                                     dinnerItems: vm.items(day: day, slot: "dinner"),
-                                    onAdd: { slot in addSlot = (day, slot) },
-                                    onRemove: { id in Task { await vm.removeItem(itemId: id) } }
+                                    onAdd:    { slot in addSlot = (day, slot) },
+                                    onRemove: { id in Task { await vm.removeItem(itemId: id) } },
+                                    onMove:   { id, targetDay, targetSlot in
+                                        Task { await vm.moveItem(itemId: id, toDayOfWeek: targetDay, toMealSlot: targetSlot) }
+                                    },
+                                    day: day
                                 )
                             }
                         }
@@ -110,6 +115,8 @@ private struct DayRow: View {
     let dinnerItems: [MealPlanItem]
     let onAdd: (String) -> Void
     let onRemove: (String) -> Void
+    let onMove: (String, Int, String) -> Void  // (itemId, targetDay, targetSlot)
+    let day: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: VitaSpacing.xs) {
@@ -120,9 +127,11 @@ private struct DayRow: View {
 
             HStack(alignment: .top, spacing: VitaSpacing.sm) {
                 SlotCell(label: "Déjeuner", items: lunchItems,
-                         onAdd: { onAdd("lunch") }, onRemove: onRemove)
+                         onAdd: { onAdd("lunch") }, onRemove: onRemove,
+                         onMove: { id in onMove(id, day, "lunch") })
                 SlotCell(label: "Dîner", items: dinnerItems,
-                         onAdd: { onAdd("dinner") }, onRemove: onRemove)
+                         onAdd: { onAdd("dinner") }, onRemove: onRemove,
+                         onMove: { id in onMove(id, day, "dinner") })
             }
         }
     }
@@ -133,6 +142,9 @@ private struct SlotCell: View {
     let items: [MealPlanItem]
     let onAdd: () -> Void
     let onRemove: (String) -> Void
+    let onMove: (String) -> Void   // itemId déposé dans ce créneau
+
+    @State private var isDropTarget = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: VitaSpacing.xs) {
@@ -140,19 +152,19 @@ private struct SlotCell: View {
                 .font(VitaFont.caption())
                 .foregroundStyle(VitaColor.textSecondary)
 
-            if items.isEmpty {
-                Button(action: onAdd) {
-                    HStack {
-                        Image(systemName: "plus").font(.caption)
-                        Text("Ajouter").font(VitaFont.caption())
+            VStack(alignment: .leading, spacing: 2) {
+                if items.isEmpty {
+                    Button(action: onAdd) {
+                        HStack {
+                            Image(systemName: "plus").font(.caption)
+                            Text("Ajouter").font(VitaFont.caption())
+                        }
+                        .foregroundStyle(VitaColor.accent)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .background(isDropTarget ? VitaColor.accent.opacity(0.08) : VitaColor.surfaceHigh)
+                        .clipShape(RoundedRectangle(cornerRadius: VitaRadius.sm))
                     }
-                    .foregroundStyle(VitaColor.accent)
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .background(VitaColor.surfaceHigh)
-                    .clipShape(RoundedRectangle(cornerRadius: VitaRadius.sm))
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 2) {
+                } else {
                     ForEach(items) { item in
                         MealItemChip(item: item, onRemove: { onRemove(item.id) })
                     }
@@ -162,6 +174,21 @@ private struct SlotCell: View {
                             .foregroundStyle(VitaColor.accent)
                     }
                 }
+            }
+            .overlay(
+                isDropTarget && !items.isEmpty
+                    ? RoundedRectangle(cornerRadius: VitaRadius.sm)
+                        .stroke(VitaColor.accent, lineWidth: 1.5)
+                    : nil
+            )
+            .onDrop(of: [UTType.plainText], isTargeted: $isDropTarget) { providers in
+                guard let provider = providers.first else { return false }
+                _ = provider.loadObject(ofClass: NSString.self) { object, _ in
+                    if let itemId = object as? String {
+                        DispatchQueue.main.async { onMove(itemId) }
+                    }
+                }
+                return true
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -174,6 +201,9 @@ private struct MealItemChip: View {
 
     var body: some View {
         HStack {
+            Image(systemName: "line.3.horizontal")
+                .font(.system(size: 10))
+                .foregroundStyle(VitaColor.textSecondary)
             Text(item.recipeName)
                 .font(VitaFont.caption())
                 .foregroundStyle(VitaColor.textPrimary)
@@ -190,6 +220,9 @@ private struct MealItemChip: View {
         .background(VitaColor.surface)
         .clipShape(RoundedRectangle(cornerRadius: VitaRadius.sm))
         .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+        .onDrag {
+            NSItemProvider(object: item.id as NSString)
+        }
     }
 }
 

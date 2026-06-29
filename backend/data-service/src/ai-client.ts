@@ -7,8 +7,10 @@
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL ?? 'http://localhost:3003'
 const AI_SERVICE_TOKEN = process.env.AI_SERVICE_TOKEN ?? ''
 
-// Timeout généreux : Claude peut légitimement prendre jusqu'à 10s.
+// Timeout standard : Claude conversation ~5-10s.
 const TIMEOUT_MS = 15_000
+// Timeout étendu pour les routes qui enchaînent plusieurs appels Claude (ex: portrait).
+const TIMEOUT_MS_LONG = 45_000
 
 export class AIEngineError extends Error {
   constructor(
@@ -69,10 +71,11 @@ export interface DetectPatternsResponse {
 
 async function callAIEngine<TBody, TResponse>(
   path: string,
-  body: TBody
+  body: TBody,
+  timeoutMs = TIMEOUT_MS
 ): Promise<TResponse> {
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
 
   if (process.env.NODE_ENV !== 'production') {
     console.log('[ai-client] AI REQUEST', path, JSON.stringify(body, null, 2))
@@ -92,7 +95,7 @@ async function callAIEngine<TBody, TResponse>(
     })
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
-      throw new AIEngineError(504, 'AI_ENGINE_TIMEOUT', `AI engine timed out after ${TIMEOUT_MS}ms`)
+      throw new AIEngineError(504, 'AI_ENGINE_TIMEOUT', `AI engine timed out after ${timeoutMs}ms`)
     }
     throw new AIEngineError(502, 'AI_ENGINE_UNREACHABLE', 'AI engine is unreachable')
   } finally {
@@ -292,9 +295,12 @@ export async function sendFirstEncounterMessage(
   userId: string,
   content: string
 ): Promise<FirstEncounterMessageResponse> {
+  // Timeout étendu : le dernier message peut déclencher la génération du portrait
+  // (2 appels Claude consécutifs), ce qui peut prendre 20-30s.
   return callAIEngine<{ user_id: string; content: string }, FirstEncounterMessageResponse>(
     '/first-encounter/message',
-    { user_id: userId, content }
+    { user_id: userId, content },
+    TIMEOUT_MS_LONG
   )
 }
 

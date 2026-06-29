@@ -301,6 +301,130 @@ class TestParseEdgeCases:
         assert result[0]["importance"] == 3
 
 
+# ── Régression : portrait génération après ≥8 échanges ──────────────────────
+
+class TestPortraitGenerationRegression:
+    """
+    Régression pour le bug : POST /first-encounter/message retournait 503
+    quand is_complete=True car _generate_portrait() enchaîne un second appel
+    Claude, dépassant le timeout de 15s du data-service.
+
+    Ces tests vérifient que la logique côté ai-engine est correcte :
+    - is_complete=True déclenche bien _generate_portrait dans send_message
+    - _generate_portrait retourne un texte non vide en cas de succès
+    - _generate_portrait retourne un fallback en cas d'exception (pas de crash)
+    - L'exchange_count >= _MIN_EXCHANGES_BEFORE_CLOSE est requis pour clore
+    """
+
+    def test_min_exchanges_before_close_is_8(self):
+        # Si cette valeur change, le timeout doit être réévalué.
+        assert _MIN_EXCHANGES_BEFORE_CLOSE == 8
+
+    def test_is_complete_false_when_exchange_count_below_min(self):
+        # Simuler la logique de send_message : is_complete=True N'est PAS appliqué
+        # si exchange_count < _MIN_EXCHANGES_BEFORE_CLOSE.
+        for count in range(1, _MIN_EXCHANGES_BEFORE_CLOSE):
+            is_complete_from_claude = True
+            effective = is_complete_from_claude and count >= _MIN_EXCHANGES_BEFORE_CLOSE
+            assert effective is False, (
+                f"exchange_count={count} doit bloquer la clôture (< {_MIN_EXCHANGES_BEFORE_CLOSE})"
+            )
+
+    def test_is_complete_true_when_exchange_count_at_min(self):
+        count = _MIN_EXCHANGES_BEFORE_CLOSE
+        is_complete_from_claude = True
+        effective = is_complete_from_claude and count >= _MIN_EXCHANGES_BEFORE_CLOSE
+        assert effective is True
+
+    def test_is_complete_true_at_exchange_10(self):
+        # Scénario exact du bug : message n°10 déclenchait le portrait.
+        count = 10
+        is_complete_from_claude = True
+        effective = is_complete_from_claude and count >= _MIN_EXCHANGES_BEFORE_CLOSE
+        assert effective is True
+
+    def test_portrait_generation_fallback_on_exception(self):
+        import asyncio
+        import first_encounter as fe
+
+        async def _run():
+            import unittest.mock as mock
+            # Simuler une exception Anthropic sur _generate_portrait
+            with mock.patch.object(fe._client.messages, 'create',
+                                   new=mock.AsyncMock(side_effect=Exception("API error"))):
+                result = await fe._generate_portrait(
+                    user_id="test-user",
+                    exchanges=[
+                        {"role": "vita", "content": "Bonjour.", "topic": "situation_actuelle"},
+                        {"role": "user", "content": "Je vais bien.", "topic": "situation_actuelle"},
+                    ]
+                )
+            return result
+
+        portrait = asyncio.get_event_loop().run_until_complete(_run())
+        # Le fallback doit renvoyer une chaîne non vide, pas lever d'exception
+        assert isinstance(portrait, str)
+        assert len(portrait) > 0
+
+    def test_conversation_flow_produces_portrait_on_is_complete(self):
+        import asyncio
+        import first_encounter as fe
+        import json
+        import unittest.mock as mock
+
+        async def _run():
+            conv_response = json.dumps({
+                "response": "Je vais maintenant composer mon portrait de toi.",
+                "topic": "attentes_vita",
+                "is_complete": True,
+                "memories": [],
+            })
+            portrait_text = "Il me semble percevoir une personne engagée et déterminée."
+
+            # Construire un mock conn compatible avec `async with pool.acquire() as conn`
+            mock_conn = mock.AsyncMock()
+            mock_conn.fetchrow.return_value = {
+                "id": "session-uuid",
+                "status": "in_progress",
+                "exchange_count": 9,
+                "topic_index": 11,
+            }
+            mock_conn.fetch.return_value = [
+                {"role": "vita", "content": "Bonjour.", "topic": "situation_actuelle"},
+                {"role": "user",  "content": "Je vais bien.", "topic": "situation_actuelle"},
+            ]
+            mock_conn.execute = mock.AsyncMock(return_value=None)
+
+            # pool.acquire() doit renvoyer un async context manager
+            acquire_cm = mock.AsyncMock()
+            acquire_cm.__aenter__ = mock.AsyncMock(return_value=mock_conn)
+            acquire_cm.__aexit__ = mock.AsyncMock(return_value=False)
+            mock_pool = mock.MagicMock()
+            mock_pool.acquire.return_value = acquire_cm
+
+            # Mock des deux appels Claude séquentiels : conversation + portrait
+            msg_conv = mock.MagicMock()
+            msg_conv.content = [mock.MagicMock(text=conv_response)]
+            msg_portrait = mock.MagicMock()
+            msg_portrait.content = [mock.MagicMock(text=portrait_text)]
+
+            with mock.patch("first_encounter.get_pool",
+                            new=mock.AsyncMock(return_value=mock_pool)), \
+                 mock.patch.object(fe._client.messages, "create",
+                                   new=mock.AsyncMock(side_effect=[msg_conv, msg_portrait])):
+                result = await fe.send_message(
+                    user_id="test-user",
+                    user_content="J'attends que VITA m'aide à mieux me comprendre.",
+                )
+            return result
+
+        EXPECTED_PORTRAIT = "Il me semble percevoir une personne engagée et déterminée."
+        result = asyncio.get_event_loop().run_until_complete(_run())
+        assert result["is_complete"] is True
+        assert result["portrait"] == EXPECTED_PORTRAIT
+        assert result["exchange_number"] == 10
+
+
 # ── Régression : start_first_encounter retourne status ────────────────────────
 
 class TestStartFirstEncounterContract:

@@ -37,6 +37,17 @@ struct ShoppingListView: View {
                     }
                     .disabled(vm.isGenerating)
                 }
+                if !vm.items.isEmpty {
+                    ToolbarItem(placement: .secondaryAction) {
+                        ShareLink(
+                            item: vm.shareText,
+                            subject: Text("Liste de courses"),
+                            message: Text("Voici ma liste pour la semaine.")
+                        ) {
+                            Label("Partager", systemImage: "square.and.arrow.up")
+                        }
+                    }
+                }
             }
             .alert("Erreur", isPresented: Binding(
                 get: { vm.errorMessage != nil },
@@ -44,6 +55,24 @@ struct ShoppingListView: View {
             )) {
                 Button("OK") { vm.errorMessage = nil }
             } message: { Text(vm.errorMessage ?? "") }
+            .overlay(alignment: .top) {
+                if let banner = vm.readyBanner {
+                    HStack(spacing: VitaSpacing.sm) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(VitaColor.accent)
+                        Text(banner)
+                            .font(VitaFont.body())
+                            .foregroundStyle(VitaColor.textPrimary)
+                    }
+                    .padding(.horizontal, VitaSpacing.md)
+                    .padding(.vertical, VitaSpacing.sm)
+                    .background(VitaColor.surface)
+                    .clipShape(Capsule())
+                    .shadow(color: .black.opacity(0.10), radius: 8, y: 2)
+                    .padding(.top, VitaSpacing.sm)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
         }
         .task { await vm.load(planId: planId) }
     }

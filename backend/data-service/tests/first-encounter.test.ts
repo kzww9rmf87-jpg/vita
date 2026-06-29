@@ -353,6 +353,52 @@ describe('POST /first-encounter/message', () => {
 
     expect(res.statusCode).toBe(503)
   })
+
+  // Régression : le message déclenchant la génération du portrait (is_complete=true)
+  // provoquait un 503 car l'ai-engine prenait >15s (2 appels Claude consécutifs).
+  // Vérifie que ce cas retourne bien 200, pas 503.
+  it('retourne 200 même quand le portrait est généré (is_complete=true, échange 10)', async () => {
+    const portraitResponse = {
+      vita_response: 'Je vais maintenant composer ton portrait…',
+      topic: 'attentes_vita',
+      exchange_number: 10,
+      is_complete: true,
+      portrait: 'Il me semble percevoir une personne profondément engagée dans ses projets...',
+    }
+    vi.mocked(sendFirstEncounterMessage).mockResolvedValueOnce(portraitResponse as any)
+
+    const token = makeToken(app)
+    const res = await app.inject({
+      method: 'POST',
+      url: '/first-encounter/message',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ content: "J'attends que VITA m'aide à mieux me connaître." }),
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.json().is_complete).toBe(true)
+    expect(res.json().portrait).toBeTruthy()
+    expect(res.json().portrait.length).toBeGreaterThan(50)
+  })
+
+  // Régression : un timeout AI_ENGINE_TIMEOUT (504) doit aussi renvoyer 503 côté client.
+  it('retourne 503 en cas de timeout de l\'ai-engine (portrait trop long)', async () => {
+    const { AIEngineError } = await import('../src/ai-client.js')
+    vi.mocked(sendFirstEncounterMessage).mockRejectedValueOnce(
+      new AIEngineError(504, 'AI_ENGINE_TIMEOUT', 'AI engine timed out after 45000ms')
+    )
+
+    const token = makeToken(app)
+    const res = await app.inject({
+      method: 'POST',
+      url: '/first-encounter/message',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ content: "Mon dernier message." }),
+    })
+
+    expect(res.statusCode).toBe(503)
+    expect(res.json().error).toBe('SERVICE_UNAVAILABLE')
+  })
 })
 
 // ── POST /first-encounter/correct ─────────────────────────────────────────────

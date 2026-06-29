@@ -121,6 +121,13 @@ actor APIClient {
             throw APIError.invalidResponse
         }
 
+        #if DEBUG
+        if http.statusCode < 200 || http.statusCode >= 300 {
+            let body = String(data: data, encoding: .utf8) ?? "<non-UTF8>"
+            print("[APIClient] ⚠️ \(request.httpMethod ?? "?") \(request.url?.path ?? "?") → HTTP \(http.statusCode) | \(body)")
+        }
+        #endif
+
         switch http.statusCode {
         case 200...299:
             return try JSONDecoder.vita.decode(T.self, from: data)

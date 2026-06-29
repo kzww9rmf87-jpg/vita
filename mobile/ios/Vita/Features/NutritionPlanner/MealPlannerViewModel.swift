@@ -19,8 +19,8 @@ struct MealPlanDetail: Codable {
 
 struct MealPlanItem: Identifiable, Codable, Equatable {
     let id: String
-    let dayOfWeek: Int        // 0 = lundi, 6 = dimanche
-    let mealSlot: String      // "lunch" | "dinner"
+    var dayOfWeek: Int        // 0 = lundi, 6 = dimanche (var pour mise à jour optimiste)
+    var mealSlot: String      // "lunch" | "dinner" (var pour mise à jour optimiste)
     let recipeId: String?
     let recipeName: String
     let portions: Double
@@ -108,6 +108,30 @@ final class MealPlannerViewModel: ObservableObject {
             let _: [String: String] = try await APIClient.shared.post("/meal-plans/\(planId)/items", body: body)
             await loadCurrentPlan()
         } catch { errorMessage = error.localizedDescription }
+    }
+
+    func moveItem(itemId: String, toDayOfWeek: Int, toMealSlot: String) async {
+        guard let planId = currentPlan?.id,
+              let idx = currentPlan?.items.firstIndex(where: { $0.id == itemId })
+        else { return }
+
+        // Optimiste : déplace immédiatement dans l'UI
+        let prevDay  = currentPlan!.items[idx].dayOfWeek
+        let prevSlot = currentPlan!.items[idx].mealSlot
+        currentPlan!.items[idx].dayOfWeek = toDayOfWeek
+        currentPlan!.items[idx].mealSlot  = toMealSlot
+
+        do {
+            let body = MealPlanItemPatch(dayOfWeek: toDayOfWeek, mealSlot: toMealSlot, portions: nil)
+            let _: [String: String] = try await APIClient.shared.patch(
+                "/meal-plans/\(planId)/items/\(itemId)", body: body
+            )
+        } catch {
+            // Rollback si l'API échoue
+            currentPlan?.items[idx].dayOfWeek = prevDay
+            currentPlan?.items[idx].mealSlot  = prevSlot
+            errorMessage = error.localizedDescription
+        }
     }
 
     func removeItem(itemId: String) async {

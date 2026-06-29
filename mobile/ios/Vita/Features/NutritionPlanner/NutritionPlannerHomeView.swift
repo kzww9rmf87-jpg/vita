@@ -14,6 +14,7 @@ struct NutritionPlannerHomeView: View {
                             icon: "calendar",
                             title: "Plan de la semaine",
                             subtitle: weekSubtitle,
+                            badge: planBadge,
                             color: VitaColor.accent
                         )
                     }
@@ -53,7 +54,7 @@ struct NutritionPlannerHomeView: View {
                     // Carte 4 — Garde-manger
                     NavigationLink(destination: PantryView()) {
                         PlannerCard(
-                            icon: "cabinet",
+                            icon: "cabinet.fill",
                             title: "Garde-manger",
                             subtitle: "Ingrédients toujours disponibles",
                             color: .brown
@@ -79,6 +80,11 @@ struct NutritionPlannerHomeView: View {
         let end = Calendar.current.date(byAdding: .day, value: 6, to: mealPlanVm.weekStart) ?? mealPlanVm.weekStart
         return "Semaine du \(fmt.string(from: mealPlanVm.weekStart)) au \(fmt.string(from: end))"
     }
+
+    private var planBadge: String? {
+        guard let count = mealPlanVm.currentPlan?.items.count, count > 0 else { return nil }
+        return "\(count) repas"
+    }
 }
 
 // MARK: — PlannerCard
@@ -87,6 +93,7 @@ private struct PlannerCard: View {
     let icon: String
     let title: String
     let subtitle: String
+    var badge: String? = nil
     let color: Color
 
     var body: some View {
@@ -108,6 +115,15 @@ private struct PlannerCard: View {
                     .foregroundStyle(VitaColor.textSecondary)
             }
             Spacer()
+            if let badge {
+                Text(badge)
+                    .font(VitaFont.caption())
+                    .foregroundStyle(color)
+                    .padding(.horizontal, VitaSpacing.sm)
+                    .padding(.vertical, 3)
+                    .background(color.opacity(0.10))
+                    .clipShape(Capsule())
+            }
             Image(systemName: "chevron.right")
                 .font(.caption)
                 .foregroundStyle(VitaColor.textSecondary)

@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 // MARK: — Modèles
 
@@ -46,6 +46,7 @@ final class ShoppingListViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var isGenerating = false
     @Published var errorMessage: String?
+    @Published var readyBanner: String?  // texte de la bannière post-génération
 
     var planId: String?
 
@@ -58,6 +59,20 @@ final class ShoppingListViewModel: ObservableObject {
 
     var uncheckedCount: Int { items.filter { !$0.isChecked }.count }
 
+    var shareText: String {
+        guard !items.isEmpty else { return "Liste de courses vide." }
+        return itemsByCategory.map { group in
+            "\(group.category.label)\n" + group.items.map { item in
+                var line = "• \(item.ingredientName.capitalized)"
+                if let qty = item.quantity, let unit = item.unit {
+                    line += " (\(Int(qty)) \(unit))"
+                }
+                if item.isChecked { line += " ✓" }
+                return line
+            }.joined(separator: "\n")
+        }.joined(separator: "\n\n")
+    }
+
     func load(planId: String) async {
         self.planId = planId
         isLoading = true; defer { isLoading = false }
@@ -69,10 +84,19 @@ final class ShoppingListViewModel: ObservableObject {
     func generate(planId: String) async {
         isGenerating = true; defer { isGenerating = false }
         do {
-            let _: [String: Int] = try await APIClient.shared.post(
+            let result: [String: Int] = try await APIClient.shared.post(
                 "/meal-plans/\(planId)/shopping-list/generate", body: ShoppingListEmptyBody()
             )
             await load(planId: planId)
+            let count = result["itemsGenerated"] ?? 0
+            let text = count > 0
+                ? "\(count) article\(count > 1 ? "s" : "") à acheter"
+                : "Le garde-manger couvre tout — rien à acheter !"
+            withAnimation { readyBanner = text }
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                withAnimation { readyBanner = nil }
+            }
         } catch { errorMessage = error.localizedDescription }
     }
 
