@@ -62,7 +62,7 @@ describe('POST /nutrition/recipes/prefill', () => {
     const res = await app.inject({
       method: 'POST',
       url:    '/nutrition/recipes/prefill',
-      payload: { recipeName: 'Lasagnes bolognaise', servings: 6 },
+      payload: { recipe_name: 'Lasagnes bolognaise', servings: 6 },
     })
     expect(res.statusCode).toBe(200)
     const body = res.json()
@@ -78,24 +78,37 @@ describe('POST /nutrition/recipes/prefill', () => {
     const res = await app.inject({
       method: 'POST',
       url:    '/nutrition/recipes/prefill',
-      payload: { recipeName: 'Quiche lorraine' },
+      payload: { recipe_name: 'Quiche lorraine' },
     })
     expect(res.statusCode).toBe(200)
     expect(requestRecipePrefill).toHaveBeenCalledWith('Quiche lorraine', undefined)
   })
 
-  it('400 si recipeName vide', async () => {
+  // Régression : payload exact envoyé par iOS (JSONEncoder.vita → snake_case)
+  it('200 payload iOS réel snake_case (Spaghettis bolognaises)', async () => {
+    ;(requestRecipePrefill as any).mockResolvedValue({ ...MOCK_PREFILL, name: 'Spaghettis bolognaises', servings: 4 })
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST',
       url:    '/nutrition/recipes/prefill',
-      payload: { recipeName: '' },
+      payload: { recipe_name: 'Spaghettis bolognaises', servings: 4 },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(requestRecipePrefill).toHaveBeenCalledWith('Spaghettis bolognaises', 4)
+  })
+
+  it('400 si recipe_name vide', async () => {
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'POST',
+      url:    '/nutrition/recipes/prefill',
+      payload: { recipe_name: '' },
     })
     expect(res.statusCode).toBe(400)
     expect(res.json().error).toBe('VALIDATION_ERROR')
   })
 
-  it('400 si recipeName manquant', async () => {
+  it('400 si recipe_name manquant', async () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST',
@@ -106,12 +119,12 @@ describe('POST /nutrition/recipes/prefill', () => {
     expect(res.json().error).toBe('VALIDATION_ERROR')
   })
 
-  it('400 si recipeName trop long', async () => {
+  it('400 si recipe_name trop long', async () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'POST',
       url:    '/nutrition/recipes/prefill',
-      payload: { recipeName: 'x'.repeat(201) },
+      payload: { recipe_name: 'x'.repeat(201) },
     })
     expect(res.statusCode).toBe(400)
   })
@@ -121,7 +134,7 @@ describe('POST /nutrition/recipes/prefill', () => {
     const res = await app.inject({
       method: 'POST',
       url:    '/nutrition/recipes/prefill',
-      payload: { recipeName: 'Soupe', servings: 0 },
+      payload: { recipe_name: 'Soupe', servings: 0 },
     })
     expect(res.statusCode).toBe(400)
   })
@@ -134,7 +147,7 @@ describe('POST /nutrition/recipes/prefill', () => {
     const res = await app.inject({
       method: 'POST',
       url:    '/nutrition/recipes/prefill',
-      payload: { recipeName: 'Soupe' },
+      payload: { recipe_name: 'Soupe' },
     })
     expect(res.statusCode).toBe(503)
     expect(res.json().error).toBe('AI_ENGINE_UNAVAILABLE')
@@ -148,7 +161,7 @@ describe('POST /nutrition/recipes/prefill', () => {
     const res = await app.inject({
       method: 'POST',
       url:    '/nutrition/recipes/prefill',
-      payload: { recipeName: 'Soupe' },
+      payload: { recipe_name: 'Soupe' },
     })
     expect(res.statusCode).toBe(503)
   })
@@ -159,7 +172,7 @@ describe('POST /nutrition/recipes/prefill', () => {
     const res = await app.inject({
       method: 'POST',
       url:    '/nutrition/recipes/prefill',
-      payload: { recipeName: 'Soupe' },
+      payload: { recipe_name: 'Soupe' },
     })
     expect(res.statusCode).toBe(503)
     expect(res.json().error).toBe('AI_ENGINE_UNAVAILABLE')
@@ -171,7 +184,7 @@ describe('POST /nutrition/recipes/prefill', () => {
     await app.inject({
       method: 'POST',
       url:    '/nutrition/recipes/prefill',
-      payload: { recipeName: 'Lasagnes bolognaise', servings: 6 },
+      payload: { recipe_name: 'Lasagnes bolognaise', servings: 6 },
     })
     expect(requestRecipePrefill).toHaveBeenCalledWith('Lasagnes bolognaise', 6)
   })
@@ -182,7 +195,7 @@ describe('POST /nutrition/recipes/prefill', () => {
     const res = await app.inject({
       method: 'POST',
       url:    '/nutrition/recipes/prefill',
-      payload: { recipeName: 'Tarte aux pommes' },
+      payload: { recipe_name: 'Tarte aux pommes' },
     })
     expect(res.json().is_estimated).toBe(true)
   })

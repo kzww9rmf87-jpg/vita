@@ -412,9 +412,10 @@ export const nutritionRoutes: FastifyPluginAsync = async (app) => {
 
   // ── Prefill IA ─────────────────────────────────────────────────────────────
 
+  // iOS envoie snake_case (JSONEncoder.vita .convertToSnakeCase)
   const RecipePrefillSchema = z.object({
-    recipeName: z.string().min(1).max(200),
-    servings:   z.number().int().min(1).max(20).optional(),
+    recipe_name: z.string().min(1).max(200),
+    servings:    z.number().int().min(1).max(20).optional(),
   })
 
   app.post('/recipes/prefill', async (req, reply) => {
@@ -422,7 +423,7 @@ export const nutritionRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) {
       return reply.status(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() })
     }
-    const { recipeName, servings } = parsed.data
+    const { recipe_name: recipeName, servings } = parsed.data
 
     try {
       const result = await requestRecipePrefill(recipeName, servings)
