@@ -21,6 +21,8 @@
 		8DF736CB892B4887A60AE038 /* NutritionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21FE795C114B4D1CBC7B20CE /* NutritionView.swift */; };
 		A5079EF2D74947AC9249BA6A /* EnergyHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62C4C32B28694681B48B08F0 /* EnergyHomeView.swift */; };
 		7C941CE5656249BA8C247D4C /* NutritionPlannerHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BD5BB454EE74F58AFB1ECDA /* NutritionPlannerHomeView.swift */; };
+		95F449F59BD64C4FBD81EA77 /* NutritionProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9319FFF9A1B5475AB70D5B0B /* NutritionProfileView.swift */; };
+		53DE7D4E13584BB794D5CCB5 /* NutritionProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3C7C0E6618B44C5BBC14579 /* NutritionProfileViewModel.swift */; };
 		2836900A68BC4FD4B5E301EA /* RecipeLibraryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6350BD0A83A845FC8747E57B /* RecipeLibraryViewModel.swift */; };
 		D52969C306A641FC8A193466 /* RecipeLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59ADDE75031341519CED0CCA /* RecipeLibraryView.swift */; };
 		E9A85D1EC0804EAA8D3E84FC /* MealPlannerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F52B6EC9859C4CD5B824A484 /* MealPlannerViewModel.swift */; };
@@ -67,6 +69,8 @@
 		21FE795C114B4D1CBC7B20CE /* NutritionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionView.swift; sourceTree = "<group>"; };
 		62C4C32B28694681B48B08F0 /* EnergyHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyHomeView.swift; sourceTree = "<group>"; };
 		6BD5BB454EE74F58AFB1ECDA /* NutritionPlannerHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionPlannerHomeView.swift; sourceTree = "<group>"; };
+		9319FFF9A1B5475AB70D5B0B /* NutritionProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionProfileView.swift; sourceTree = "<group>"; };
+		E3C7C0E6618B44C5BBC14579 /* NutritionProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionProfileViewModel.swift; sourceTree = "<group>"; };
 		6350BD0A83A845FC8747E57B /* RecipeLibraryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeLibraryViewModel.swift; sourceTree = "<group>"; };
 		59ADDE75031341519CED0CCA /* RecipeLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeLibraryView.swift; sourceTree = "<group>"; };
 		F52B6EC9859C4CD5B824A484 /* MealPlannerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealPlannerViewModel.swift; sourceTree = "<group>"; };
@@ -348,6 +352,8 @@
 			isa = PBXGroup;
 			children = (
 				6BD5BB454EE74F58AFB1ECDA /* NutritionPlannerHomeView.swift */,
+				9319FFF9A1B5475AB70D5B0B /* NutritionProfileView.swift */,
+				E3C7C0E6618B44C5BBC14579 /* NutritionProfileViewModel.swift */,
 				6350BD0A83A845FC8747E57B /* RecipeLibraryViewModel.swift */,
 				59ADDE75031341519CED0CCA /* RecipeLibraryView.swift */,
 				F52B6EC9859C4CD5B824A484 /* MealPlannerViewModel.swift */,
@@ -447,6 +453,8 @@
 				8DF736CB892B4887A60AE038 /* NutritionView.swift in Sources */,
 				A5079EF2D74947AC9249BA6A /* EnergyHomeView.swift in Sources */,
 				7C941CE5656249BA8C247D4C /* NutritionPlannerHomeView.swift in Sources */,
+				95F449F59BD64C4FBD81EA77 /* NutritionProfileView.swift in Sources */,
+				53DE7D4E13584BB794D5CCB5 /* NutritionProfileViewModel.swift in Sources */,
 				2836900A68BC4FD4B5E301EA /* RecipeLibraryViewModel.swift in Sources */,
 				D52969C306A641FC8A193466 /* RecipeLibraryView.swift in Sources */,
 				E9A85D1EC0804EAA8D3E84FC /* MealPlannerViewModel.swift in Sources */,

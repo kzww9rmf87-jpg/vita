@@ -24,7 +24,11 @@ from first_encounter import (
     send_message as send_first_encounter_message,
     apply_portrait_correction,
 )
-from meal_planner import MealPlanInput, MealPlanner
+from meal_planner import (
+    MealPlanInput, MealPlanner,
+    MealPlannerAgent, SmartMealPlanInput, NutritionProfile, RecipeWithMacros,
+    calculate_targets,
+)
 
 settings = get_settings()
 
@@ -263,12 +267,74 @@ async def meal_planner_distribute(
     _: bool = Depends(verify_service_token),
 ):
     """
-    Répartit les recettes choisies sur 14 créneaux (7 jours × lunch/dinner).
-    Aucune analyse nutritionnelle — pure logique d'organisation.
+    Route héritée — distribution simple sans profil nutritionnel.
+    Conservée pour compatibilité descendante.
     """
     planner = MealPlanner()
     distribution = planner.distribute(req.recipes)
     return [item.model_dump() for item in distribution]
+
+
+class SmartPlanRequest(BaseModel):
+    user_id: str
+    recipes: list[RecipeWithMacros]
+    profile: Optional[NutritionProfile] = None
+    pantry:  list[str] = []
+
+
+@app.post("/meal-planner/plan")
+async def meal_planner_plan(
+    req: SmartPlanRequest,
+    _: bool = Depends(verify_service_token),
+):
+    """
+    Planification intelligente avec profil nutritionnel.
+    Retourne : créneaux planifiés + macros par créneau + macros par jour + macros semaine.
+    """
+    agent = MealPlannerAgent()
+    result = await agent.plan(SmartMealPlanInput(
+        user_id=req.user_id,
+        recipes=req.recipes,
+        profile=req.profile,
+        pantry=req.pantry,
+    ))
+
+    return {
+        "slots": [
+            {
+                "recipe_id":   s.recipe_id,
+                "recipe_name": s.recipe_name,
+                "day_of_week": s.day_of_week,
+                "meal_slot":   s.meal_slot,
+                "portions":    s.portions,
+                **s.macros.to_dict(),
+            }
+            for s in result.slots
+        ],
+        "day_macros":  [d.to_dict() for d in result.day_macros],
+        "week_macros": result.week_macros.to_dict(),
+        "used_claude": result.used_claude,
+    }
+
+
+@app.post("/meal-planner/calculate-targets")
+async def meal_planner_calculate_targets(
+    req: NutritionProfile,
+    _: bool = Depends(verify_service_token),
+):
+    """
+    Calcule les cibles nutritionnelles journalières depuis un profil.
+    Déterministe — aucun appel IA.
+    """
+    targets = calculate_targets(
+        weight_kg=req.weight_kg,
+        height_cm=req.height_cm,
+        age=req.age,
+        sex=req.sex,
+        activity_level=req.activity_level,
+        objective=req.objective,
+    )
+    return targets.to_dict() if targets else {}
 
 
 if __name__ == "__main__":

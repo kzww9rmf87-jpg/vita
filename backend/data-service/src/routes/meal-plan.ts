@@ -8,7 +8,8 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { query, queryOne } from '../db.js'
-import { requestMealDistribution } from '../ai-client.js'
+import { requestMealDistribution, requestSmartMealPlan } from '../ai-client.js'
+import type { RecipeWithMacros, NutritionProfilePayload } from '../ai-client.js'
 
 // ── Schémas ───────────────────────────────────────────────────────────────────
 
@@ -252,9 +253,10 @@ export const mealPlanRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(204).send()
   })
 
-  // ── Distribution automatique (AI Engine) ──────────────────────────────────
+  // ── Distribution intelligente (AI Engine Sprint 9) ────────────────────────
 
-  // POST /:id/distribute — L'IA répartit les recettes choisies sur la semaine
+  // POST /:id/distribute — L'agent planifie les recettes choisies sur la semaine
+  // avec macros par créneau et profil nutritionnel optionnel.
   app.post('/:id/distribute', async (req, reply) => {
     const parsed = DistributeSchema.safeParse(req.body)
     if (!parsed.success) {
@@ -270,42 +272,67 @@ export const mealPlanRoutes: FastifyPluginAsync = async (app) => {
     )
     if (!plan) return reply.status(404).send({ error: 'NOT_FOUND' })
 
-    // Récupérer les recettes de l'utilisateur
-    const recipes = await query<{
-      id: string; name: string; servings: number
-      prep_minutes: number | null; cook_minutes: number | null
-    }>(
-      `SELECT id, name, servings, prep_minutes, cook_minutes
+    // Récupérer les recettes avec leurs macros
+    const recipes = await query<RecipeWithMacros>(
+      `SELECT id, name, servings, prep_minutes, cook_minutes,
+              calories, protein_g, carbs_g, fat_g, fiber_g
        FROM recipes
        WHERE id = ANY($1) AND user_id = $2`,
       [recipeIds, userId]
     )
-
     if (recipes.length === 0) {
       return reply.status(400).send({ error: 'NO_RECIPES_FOUND' })
     }
 
-    // Appel AI Engine — si indisponible, 503 explicite (données non modifiées)
-    let distribution
+    // Profil nutritionnel optionnel
+    const profileRow = await queryOne<NutritionProfilePayload>(
+      `SELECT objective, weight_kg, height_cm, age, sex,
+              activity_level, meals_per_day, batch_cooking,
+              cook_time_available, budget,
+              allergies, intolerances, excluded_foods,
+              target_calories, target_protein_g, target_carbs_g, target_fat_g, target_fiber_g
+       FROM nutrition_profiles WHERE user_id = $1`,
+      [userId]
+    )
+
+    // Garde-manger (pour exclure les ingrédients disponibles de la liste de courses)
+    const pantryRows = await query<{ ingredient_name: string }>(
+      `SELECT ingredient_name FROM pantry_items WHERE user_id = $1`,
+      [userId]
+    )
+    const pantry = pantryRows.map(p => p.ingredient_name.toLowerCase().trim())
+
+    // Appel AI Engine — agent intelligent Sprint 9
+    let result
     try {
-      distribution = await requestMealDistribution(userId, recipes)
+      result = await requestSmartMealPlan(userId, recipes, profileRow ?? null, pantry)
     } catch {
       return reply.status(503).send({ error: 'AI_ENGINE_UNAVAILABLE' })
     }
 
-    // Supprimer les anciens items du plan et insérer les nouveaux
+    // Supprimer les anciens items et insérer les nouveaux avec macros
     await query(`DELETE FROM meal_plan_items WHERE meal_plan_id = $1`, [id])
 
-    for (const item of distribution) {
+    for (const slot of result.slots) {
       await query(
         `INSERT INTO meal_plan_items
-           (meal_plan_id, day_of_week, meal_slot, recipe_id, recipe_name, portions)
-         VALUES ($1,$2,$3,$4,$5,$6)`,
-        [id, item.day_of_week, item.meal_slot, item.recipe_id, item.recipe_name, item.portions]
+           (meal_plan_id, day_of_week, meal_slot, recipe_id, recipe_name, portions,
+            calories, protein_g, carbs_g, fat_g, fiber_g)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        [
+          id, slot.day_of_week, slot.meal_slot, slot.recipe_id, slot.recipe_name, slot.portions,
+          slot.calories ?? null, slot.protein_g ?? null,
+          slot.carbs_g ?? null, slot.fat_g ?? null, slot.fiber_g ?? null,
+        ]
       )
     }
 
-    return reply.status(200).send({ itemsCreated: distribution.length })
+    return reply.status(200).send({
+      itemsCreated: result.slots.length,
+      dayMacros:    result.day_macros,
+      weekMacros:   result.week_macros,
+      usedClaude:   result.used_claude,
+    })
   })
 
   // ── Shopping List ──────────────────────────────────────────────────────────

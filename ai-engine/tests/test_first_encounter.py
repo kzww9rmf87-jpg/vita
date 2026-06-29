@@ -343,83 +343,74 @@ class TestPortraitGenerationRegression:
         effective = is_complete_from_claude and count >= _MIN_EXCHANGES_BEFORE_CLOSE
         assert effective is True
 
-    def test_portrait_generation_fallback_on_exception(self):
-        import asyncio
+    @pytest.mark.asyncio
+    async def test_portrait_generation_fallback_on_exception(self):
         import first_encounter as fe
+        import unittest.mock as mock
 
-        async def _run():
-            import unittest.mock as mock
-            # Simuler une exception Anthropic sur _generate_portrait
-            with mock.patch.object(fe._client.messages, 'create',
-                                   new=mock.AsyncMock(side_effect=Exception("API error"))):
-                result = await fe._generate_portrait(
-                    user_id="test-user",
-                    exchanges=[
-                        {"role": "vita", "content": "Bonjour.", "topic": "situation_actuelle"},
-                        {"role": "user", "content": "Je vais bien.", "topic": "situation_actuelle"},
-                    ]
-                )
-            return result
-
-        portrait = asyncio.get_event_loop().run_until_complete(_run())
+        # Simuler une exception Anthropic sur _generate_portrait
+        with mock.patch.object(fe._client.messages, 'create',
+                               new=mock.AsyncMock(side_effect=Exception("API error"))):
+            result = await fe._generate_portrait(
+                user_id="test-user",
+                exchanges=[
+                    {"role": "vita", "content": "Bonjour.", "topic": "situation_actuelle"},
+                    {"role": "user", "content": "Je vais bien.", "topic": "situation_actuelle"},
+                ]
+            )
         # Le fallback doit renvoyer une chaîne non vide, pas lever d'exception
-        assert isinstance(portrait, str)
-        assert len(portrait) > 0
+        assert isinstance(result, str)
+        assert len(result) > 0
 
-    def test_conversation_flow_produces_portrait_on_is_complete(self):
-        import asyncio
+    @pytest.mark.asyncio
+    async def test_conversation_flow_produces_portrait_on_is_complete(self):
         import first_encounter as fe
         import json
         import unittest.mock as mock
 
-        async def _run():
-            conv_response = json.dumps({
-                "response": "Je vais maintenant composer mon portrait de toi.",
-                "topic": "attentes_vita",
-                "is_complete": True,
-                "memories": [],
-            })
-            portrait_text = "Il me semble percevoir une personne engagée et déterminée."
-
-            # Construire un mock conn compatible avec `async with pool.acquire() as conn`
-            mock_conn = mock.AsyncMock()
-            mock_conn.fetchrow.return_value = {
-                "id": "session-uuid",
-                "status": "in_progress",
-                "exchange_count": 9,
-                "topic_index": 11,
-            }
-            mock_conn.fetch.return_value = [
-                {"role": "vita", "content": "Bonjour.", "topic": "situation_actuelle"},
-                {"role": "user",  "content": "Je vais bien.", "topic": "situation_actuelle"},
-            ]
-            mock_conn.execute = mock.AsyncMock(return_value=None)
-
-            # pool.acquire() doit renvoyer un async context manager
-            acquire_cm = mock.AsyncMock()
-            acquire_cm.__aenter__ = mock.AsyncMock(return_value=mock_conn)
-            acquire_cm.__aexit__ = mock.AsyncMock(return_value=False)
-            mock_pool = mock.MagicMock()
-            mock_pool.acquire.return_value = acquire_cm
-
-            # Mock des deux appels Claude séquentiels : conversation + portrait
-            msg_conv = mock.MagicMock()
-            msg_conv.content = [mock.MagicMock(text=conv_response)]
-            msg_portrait = mock.MagicMock()
-            msg_portrait.content = [mock.MagicMock(text=portrait_text)]
-
-            with mock.patch("first_encounter.get_pool",
-                            new=mock.AsyncMock(return_value=mock_pool)), \
-                 mock.patch.object(fe._client.messages, "create",
-                                   new=mock.AsyncMock(side_effect=[msg_conv, msg_portrait])):
-                result = await fe.send_message(
-                    user_id="test-user",
-                    user_content="J'attends que VITA m'aide à mieux me comprendre.",
-                )
-            return result
-
+        conv_response = json.dumps({
+            "response": "Je vais maintenant composer mon portrait de toi.",
+            "topic": "attentes_vita",
+            "is_complete": True,
+            "memories": [],
+        })
         EXPECTED_PORTRAIT = "Il me semble percevoir une personne engagée et déterminée."
-        result = asyncio.get_event_loop().run_until_complete(_run())
+
+        # Construire un mock conn compatible avec `async with pool.acquire() as conn`
+        mock_conn = mock.AsyncMock()
+        mock_conn.fetchrow.return_value = {
+            "id": "session-uuid",
+            "status": "in_progress",
+            "exchange_count": 9,
+            "topic_index": 11,
+        }
+        mock_conn.fetch.return_value = [
+            {"role": "vita", "content": "Bonjour.", "topic": "situation_actuelle"},
+            {"role": "user",  "content": "Je vais bien.", "topic": "situation_actuelle"},
+        ]
+        mock_conn.execute = mock.AsyncMock(return_value=None)
+
+        # pool.acquire() doit renvoyer un async context manager
+        acquire_cm = mock.AsyncMock()
+        acquire_cm.__aenter__ = mock.AsyncMock(return_value=mock_conn)
+        acquire_cm.__aexit__ = mock.AsyncMock(return_value=False)
+        mock_pool = mock.MagicMock()
+        mock_pool.acquire.return_value = acquire_cm
+
+        # Mock des deux appels Claude séquentiels : conversation + portrait
+        msg_conv = mock.MagicMock()
+        msg_conv.content = [mock.MagicMock(text=conv_response)]
+        msg_portrait = mock.MagicMock()
+        msg_portrait.content = [mock.MagicMock(text=EXPECTED_PORTRAIT)]
+
+        with mock.patch("first_encounter.get_pool",
+                        new=mock.AsyncMock(return_value=mock_pool)), \
+             mock.patch.object(fe._client.messages, "create",
+                               new=mock.AsyncMock(side_effect=[msg_conv, msg_portrait])):
+            result = await fe.send_message(
+                user_id="test-user",
+                user_content="J'attends que VITA m'aide à mieux me comprendre.",
+            )
         assert result["is_complete"] is True
         assert result["portrait"] == EXPECTED_PORTRAIT
         assert result["exchange_number"] == 10

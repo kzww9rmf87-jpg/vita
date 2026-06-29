@@ -6,7 +6,9 @@ vi.mock('../src/db.js', () => ({
 }))
 
 vi.mock('../src/ai-client.js', () => ({
-  requestMealDistribution: vi.fn(),
+  requestMealDistribution:   vi.fn(),
+  requestSmartMealPlan:      vi.fn(),
+  calculateNutritionTargets: vi.fn(),
 }))
 
 const { query, queryOne } = await import('../src/db.js') as {
@@ -14,8 +16,9 @@ const { query, queryOne } = await import('../src/db.js') as {
   queryOne: ReturnType<typeof vi.fn>
 }
 
-const { requestMealDistribution } = await import('../src/ai-client.js') as {
+const { requestMealDistribution, requestSmartMealPlan } = await import('../src/ai-client.js') as {
   requestMealDistribution: ReturnType<typeof vi.fn>
+  requestSmartMealPlan:    ReturnType<typeof vi.fn>
 }
 
 const makeApp = async () => {
@@ -218,17 +221,27 @@ describe('POST /meal-plans/:id/distribute', () => {
 
   it('200 distribue les recettes via AI engine', async () => {
     const recipeUUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
-    ;(queryOne as any).mockResolvedValue({ id: 'p1' })
+    ;(queryOne as any)
+      .mockResolvedValueOnce({ id: 'p1' })  // SELECT meal_plan
+      .mockResolvedValueOnce(null)           // SELECT nutrition_profiles
     ;(query as any)
       .mockResolvedValueOnce([
-        { id: recipeUUID, name: 'Poulet', servings: 4, prep_minutes: 20, cook_minutes: 60 },
-      ])                              // SELECT recipes
-      .mockResolvedValueOnce([])     // DELETE existing items
-      .mockResolvedValue([])         // INSERT items (×1)
+        { id: recipeUUID, name: 'Poulet', servings: 4, prep_minutes: 20, cook_minutes: 60,
+          calories: null, protein_g: null, carbs_g: null, fat_g: null, fiber_g: null },
+      ])                               // SELECT recipes
+      .mockResolvedValueOnce([])       // SELECT pantry
+      .mockResolvedValueOnce([])       // DELETE existing items
+      .mockResolvedValue([])           // INSERT items (×1)
 
-    ;(requestMealDistribution as any).mockResolvedValue([
-      { recipe_id: recipeUUID, recipe_name: 'Poulet', day_of_week: 0, meal_slot: 'lunch', portions: 1 },
-    ])
+    ;(requestSmartMealPlan as any).mockResolvedValue({
+      slots: [
+        { recipe_id: recipeUUID, recipe_name: 'Poulet', day_of_week: 0, meal_slot: 'lunch',
+          portions: 1, macros: { calories: null, protein_g: null, carbs_g: null, fat_g: null, fiber_g: null } },
+      ],
+      day_macros:  [],
+      week_macros: { day_of_week: -1, calories: null },
+      used_claude: false,
+    })
 
     const app = await makeApp()
     const res = await app.inject({
@@ -260,11 +273,16 @@ describe('POST /meal-plans/:id/distribute', () => {
 
   it('503 si AI Engine est indisponible', async () => {
     const recipeUUID = '11111111-1111-1111-1111-111111111111'
-    ;(queryOne as any).mockResolvedValue({ id: 'p1' })
-    ;(query as any).mockResolvedValue([
-      { id: recipeUUID, name: 'Poulet', servings: 4, prep_minutes: 20, cook_minutes: 60 },
-    ])
-    ;(requestMealDistribution as any).mockRejectedValue(new Error('AI engine unreachable'))
+    ;(queryOne as any)
+      .mockResolvedValueOnce({ id: 'p1' })  // SELECT meal_plan
+      .mockResolvedValueOnce(null)           // SELECT nutrition_profiles
+    ;(query as any)
+      .mockResolvedValueOnce([
+        { id: recipeUUID, name: 'Poulet', servings: 4, prep_minutes: 20, cook_minutes: 60,
+          calories: null, protein_g: null, carbs_g: null, fat_g: null, fiber_g: null },
+      ])
+      .mockResolvedValueOnce([])     // pantry
+    ;(requestSmartMealPlan as any).mockRejectedValue(Object.assign(new Error('AI engine unreachable'), { code: 'AI_ENGINE_UNAVAILABLE' }))
 
     const app = await makeApp()
     const res = await app.inject({

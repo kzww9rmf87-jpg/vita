@@ -20,18 +20,32 @@ struct MealPlannerView: View {
                 } else {
                     ScrollView {
                         VStack(spacing: VitaSpacing.sm) {
+                            // Résumé macro de la semaine (si disponible après planification)
+                            if let wm = vm.weekMacros, wm.calories != nil {
+                                WeekMacroSummary(macros: wm)
+                                    .padding(.horizontal, VitaSpacing.md)
+                            }
+
                             ForEach(0..<7, id: \.self) { day in
-                                DayRow(
-                                    dayLabel: DAYS_FR[day],
-                                    lunchItems: vm.items(day: day, slot: "lunch"),
-                                    dinnerItems: vm.items(day: day, slot: "dinner"),
-                                    onAdd:    { slot in addSlot = (day, slot) },
-                                    onRemove: { id in Task { await vm.removeItem(itemId: id) } },
-                                    onMove:   { id, targetDay, targetSlot in
-                                        Task { await vm.moveItem(itemId: id, toDayOfWeek: targetDay, toMealSlot: targetSlot) }
-                                    },
-                                    day: day
-                                )
+                                VStack(spacing: 4) {
+                                    DayRow(
+                                        dayLabel: DAYS_FR[day],
+                                        lunchItems: vm.items(day: day, slot: "lunch"),
+                                        dinnerItems: vm.items(day: day, slot: "dinner"),
+                                        onAdd:    { slot in addSlot = (day, slot) },
+                                        onRemove: { id in Task { await vm.removeItem(itemId: id) } },
+                                        onMove:   { id, targetDay, targetSlot in
+                                            Task { await vm.moveItem(itemId: id, toDayOfWeek: targetDay, toMealSlot: targetSlot) }
+                                        },
+                                        day: day
+                                    )
+                                    // Macros du jour (si disponibles)
+                                    if let dm = vm.dayMacros.first(where: { $0.dayOfWeek == day }),
+                                       dm.calories != nil {
+                                        DayMacroBar(macros: dm)
+                                            .padding(.horizontal, VitaSpacing.xs)
+                                    }
+                                }
                             }
                         }
                         .padding(VitaSpacing.md)
@@ -324,4 +338,82 @@ private struct RecipePickerRow: View {
             .foregroundStyle(VitaColor.textSecondary)
         }
     }
+}
+
+// MARK: — Macros
+
+private struct WeekMacroSummary: View {
+    let macros: DayMacros
+
+    var body: some View {
+        HStack(spacing: VitaSpacing.sm) {
+            MacroChip(label: "Énergie",   value: macros.calories.map { "\($0) kcal" } ?? "—", color: VitaColor.accent)
+            MacroChip(label: "Protéines", value: macros.proteinG.map { formatG($0) } ?? "—",  color: VitaColor.accentDark)
+            MacroChip(label: "Glucides",  value: macros.carbsG.map   { formatG($0) } ?? "—",  color: VitaColor.neutral)
+            MacroChip(label: "Lipides",   value: macros.fatG.map     { formatG($0) } ?? "—",  color: VitaColor.textSecondary)
+        }
+        .padding(VitaSpacing.sm)
+        .background(VitaColor.surfaceHigh)
+        .clipShape(RoundedRectangle(cornerRadius: VitaRadius.md))
+    }
+}
+
+private struct DayMacroBar: View {
+    let macros: DayMacros
+
+    var body: some View {
+        HStack(spacing: VitaSpacing.xs) {
+            if let kcal = macros.calories {
+                Text("\(kcal) kcal")
+                    .font(VitaFont.caption())
+                    .foregroundStyle(VitaColor.accent)
+            }
+            Spacer()
+            if let p = macros.proteinG {
+                Text("P \(formatG(p))")
+                    .font(VitaFont.caption())
+                    .foregroundStyle(VitaColor.accentDark)
+            }
+            if let c = macros.carbsG {
+                Text("G \(formatG(c))")
+                    .font(VitaFont.caption())
+                    .foregroundStyle(VitaColor.neutral)
+            }
+            if let f = macros.fatG {
+                Text("L \(formatG(f))")
+                    .font(VitaFont.caption())
+                    .foregroundStyle(VitaColor.textSecondary)
+            }
+        }
+        .padding(.horizontal, VitaSpacing.sm)
+        .padding(.vertical, 3)
+        .background(VitaColor.surfaceHigh.opacity(0.6))
+        .clipShape(RoundedRectangle(cornerRadius: VitaRadius.sm))
+    }
+}
+
+private struct MacroChip: View {
+    let label: String
+    let value: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(VitaFont.caption())
+                .fontWeight(.semibold)
+                .foregroundStyle(color)
+            Text(label)
+                .font(VitaFont.caption(11))
+                .foregroundStyle(VitaColor.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, VitaSpacing.xs)
+        .background(color.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: VitaRadius.sm))
+    }
+}
+
+private func formatG(_ value: Double) -> String {
+    value >= 100 ? "\(Int(value))g" : String(format: "%.1fg", value)
 }

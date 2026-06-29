@@ -351,6 +351,108 @@ export async function requestMealDistribution(
   )
 }
 
+// ── Meal Planner Agent (Sprint 9) ─────────────────────────────────────────────
+
+export interface RecipeWithMacros {
+  id:           string
+  name:         string
+  servings:     number
+  prep_minutes: number | null
+  cook_minutes: number | null
+  calories:     number | null
+  protein_g:    number | null
+  carbs_g:      number | null
+  fat_g:        number | null
+  fiber_g:      number | null
+}
+
+export interface NutritionProfilePayload {
+  objective:           string
+  weight_kg?:          number | null
+  height_cm?:          number | null
+  age?:                number | null
+  sex?:                string | null
+  activity_level:      string
+  meals_per_day:       number
+  batch_cooking:       boolean
+  cook_time_available?: string | null
+  budget?:             string | null
+  allergies:           string[]
+  intolerances:        string[]
+  excluded_foods:      string[]
+  target_calories?:    number | null
+  target_protein_g?:   number | null
+  target_carbs_g?:     number | null
+  target_fat_g?:       number | null
+  target_fiber_g?:     number | null
+}
+
+export interface PlannedSlotMacros {
+  recipe_id:   string
+  recipe_name: string
+  day_of_week: number
+  meal_slot:   'lunch' | 'dinner'
+  portions:    number
+  calories:    number | null
+  protein_g:   number | null
+  carbs_g:     number | null
+  fat_g:       number | null
+  fiber_g:     number | null
+}
+
+export interface DayMacros {
+  day_of_week: number
+  calories:    number | null
+  protein_g:   number | null
+  carbs_g:     number | null
+  fat_g:       number | null
+  fiber_g:     number | null
+}
+
+export interface SmartMealPlanResponse {
+  slots:       PlannedSlotMacros[]
+  day_macros:  DayMacros[]
+  week_macros: DayMacros
+  used_claude: boolean
+}
+
+export async function requestSmartMealPlan(
+  userId: string,
+  recipes: RecipeWithMacros[],
+  profile: NutritionProfilePayload | null,
+  pantry: string[],
+): Promise<SmartMealPlanResponse> {
+  return callAIEngine<object, SmartMealPlanResponse>(
+    '/meal-planner/plan',
+    { user_id: userId, recipes, profile, pantry },
+    TIMEOUT_MS_LONG  // peut appeler Claude pour le raffinement
+  )
+}
+
+export interface NutritionTargets {
+  target_calories:  number | null
+  target_protein_g: number | null
+  target_carbs_g:   number | null
+  target_fat_g:     number | null
+  target_fiber_g:   number | null
+}
+
+export async function calculateNutritionTargets(
+  profile: {
+    objective:      string
+    weight_kg:      number
+    height_cm:      number
+    age:            number
+    sex:            string
+    activity_level: string
+  }
+): Promise<NutritionTargets> {
+  return callAIEngine<object, NutritionTargets>(
+    '/meal-planner/calculate-targets',
+    profile
+  )
+}
+
 export async function analyzeJournalEntry(
   userId: string,
   content: string,

@@ -10,6 +10,16 @@ struct MealPlan: Identifiable, Codable, Equatable {
     let createdAt: String?
 }
 
+// Macros d'une journée (issues de la distribution IA)
+struct DayMacros: Codable, Equatable {
+    let dayOfWeek: Int   // 0-6 ou -1 pour la semaine entière
+    let calories:  Int?
+    let proteinG:  Double?
+    let carbsG:    Double?
+    let fatG:      Double?
+    let fiberG:    Double?
+}
+
 struct MealPlanDetail: Codable {
     let id: String
     let weekStart: String
@@ -51,10 +61,19 @@ struct MealPlanItemPatch: Encodable {
 
 // MARK: — ViewModel
 
+struct DistributeResponse: Codable {
+    let itemsCreated: Int
+    let dayMacros:    [DayMacros]?
+    let weekMacros:   DayMacros?
+    let usedClaude:   Bool?
+}
+
 @MainActor
 final class MealPlannerViewModel: ObservableObject {
     @Published var plans: [MealPlan] = []
     @Published var currentPlan: MealPlanDetail?
+    @Published var dayMacros:  [DayMacros] = []
+    @Published var weekMacros: DayMacros?
     @Published var isLoading = false
     @Published var isSaving = false
     @Published var errorMessage: String?
@@ -147,7 +166,9 @@ final class MealPlannerViewModel: ObservableObject {
         isSaving = true; defer { isSaving = false }
         let body = ["recipeIds": recipeIds]
         do {
-            let _: [String: Int] = try await APIClient.shared.post("/meal-plans/\(planId)/distribute", body: body)
+            let result: DistributeResponse = try await APIClient.shared.post("/meal-plans/\(planId)/distribute", body: body)
+            dayMacros  = result.dayMacros  ?? []
+            weekMacros = result.weekMacros
             await loadCurrentPlan()
         } catch { errorMessage = error.localizedDescription }
     }

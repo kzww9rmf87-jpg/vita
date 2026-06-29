@@ -61,6 +61,17 @@ struct NutritionPlannerHomeView: View {
                         )
                     }
                     .buttonStyle(.plain)
+
+                    // Carte 5 — Profil nutritionnel
+                    NavigationLink(destination: NutritionProfileView()) {
+                        PlannerCard(
+                            icon: "person.text.rectangle",
+                            title: "Mon profil",
+                            subtitle: "Préférences et organisation",
+                            color: .indigo
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(VitaSpacing.md)
             }
