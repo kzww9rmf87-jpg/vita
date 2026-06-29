@@ -261,6 +261,48 @@ private struct RecipeAddSheet: View {
                     TextField("Notes optionnelles", text: $vm.formNotes, axis: .vertical)
                         .lineLimit(3, reservesSpace: true)
                 }
+                Section("Valeurs nutritionnelles par portion") {
+                    HStack {
+                        Text("Énergie (kcal)")
+                        Spacer()
+                        TextField("—", text: $vm.formCalories)
+                            .multilineTextAlignment(.trailing)
+                            .keyboardType(.numberPad)
+                            .frame(width: 70)
+                    }
+                    HStack {
+                        Text("Protéines (g)")
+                        Spacer()
+                        TextField("—", text: $vm.formProteinG)
+                            .multilineTextAlignment(.trailing)
+                            .keyboardType(.decimalPad)
+                            .frame(width: 70)
+                    }
+                    HStack {
+                        Text("Glucides (g)")
+                        Spacer()
+                        TextField("—", text: $vm.formCarbsG)
+                            .multilineTextAlignment(.trailing)
+                            .keyboardType(.decimalPad)
+                            .frame(width: 70)
+                    }
+                    HStack {
+                        Text("Lipides (g)")
+                        Spacer()
+                        TextField("—", text: $vm.formFatG)
+                            .multilineTextAlignment(.trailing)
+                            .keyboardType(.decimalPad)
+                            .frame(width: 70)
+                    }
+                    HStack {
+                        Text("Fibres (g)")
+                        Spacer()
+                        TextField("—", text: $vm.formFiberG)
+                            .multilineTextAlignment(.trailing)
+                            .keyboardType(.decimalPad)
+                            .frame(width: 70)
+                    }
+                }
                 Section("Ingrédients") {
                     ForEach(vm.formIngredients.indices, id: \.self) { i in
                         HStack {
@@ -280,8 +322,7 @@ private struct RecipeAddSheet: View {
                             .keyboardType(.decimalPad)
                             .frame(width: 70)
                         Button {
-                            let qty = Double(ingQty)
-                            vm.addIngredient(name: ingName, quantityG: qty, unit: qty != nil ? "g" : nil)
+                            vm.addIngredient(name: ingName, quantityG: Double(ingQty))
                             ingName = ""; ingQty = ""
                         } label: {
                             Image(systemName: "plus.circle.fill")

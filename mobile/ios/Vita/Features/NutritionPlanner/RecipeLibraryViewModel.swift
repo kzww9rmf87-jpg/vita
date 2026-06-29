@@ -52,13 +52,17 @@ struct RecipeCreate: Encodable {
     let prepMinutes: Int?
     let cookMinutes: Int?
     let notes: String?
+    let calories: Int?
+    let proteinG: Double?
+    let carbsG: Double?
+    let fatG: Double?
+    let fiberG: Double?
     let ingredients: [RecipeIngredientCreate]
 }
 
 struct RecipeIngredientCreate: Encodable {
     let name: String
     let quantityG: Double?
-    let unit: String?
     let sortOrder: Int?
 }
 
@@ -79,6 +83,12 @@ final class RecipeLibraryViewModel: ObservableObject {
     @Published var formCookMinutes: Int? = nil
     @Published var formNotes = ""
     @Published var formIngredients: [RecipeIngredientCreate] = []
+    // Macros par portion (optionnelles — orientation planification)
+    @Published var formCalories: String = ""
+    @Published var formProteinG: String = ""
+    @Published var formCarbsG: String = ""
+    @Published var formFatG: String = ""
+    @Published var formFiberG: String = ""
 
     func loadRecipes() async {
         isLoading = true
@@ -110,6 +120,11 @@ final class RecipeLibraryViewModel: ObservableObject {
             prepMinutes: formPrepMinutes,
             cookMinutes: formCookMinutes,
             notes: formNotes.isEmpty ? nil : formNotes,
+            calories: Int(formCalories),
+            proteinG: Double(formProteinG),
+            carbsG: Double(formCarbsG),
+            fatG: Double(formFatG),
+            fiberG: Double(formFiberG),
             ingredients: formIngredients
         )
         do {
@@ -137,12 +152,17 @@ final class RecipeLibraryViewModel: ObservableObject {
         formCookMinutes = nil
         formNotes = ""
         formIngredients = []
+        formCalories = ""
+        formProteinG = ""
+        formCarbsG   = ""
+        formFatG     = ""
+        formFiberG   = ""
     }
 
-    func addIngredient(name: String, quantityG: Double?, unit: String?) {
+    func addIngredient(name: String, quantityG: Double?) {
         let sortOrder = formIngredients.count
         formIngredients.append(RecipeIngredientCreate(
-            name: name, quantityG: quantityG, unit: unit, sortOrder: sortOrder
+            name: name, quantityG: quantityG, sortOrder: sortOrder
         ))
     }
 }

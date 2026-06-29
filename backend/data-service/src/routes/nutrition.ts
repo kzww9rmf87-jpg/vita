@@ -63,9 +63,15 @@ const RecipeSchema = z.object({
   prepMinutes:  z.number().int().min(0).max(480).optional(),
   cookMinutes:  z.number().int().min(0).max(480).optional(),
   notes:        z.string().max(1000).optional(),
+  // Macros directes par portion (orientation planification — pas un score nutritionnel)
+  calories:     z.number().int().min(0).max(5000).optional(),
+  proteinG:     z.number().min(0).max(500).optional(),
+  carbsG:       z.number().min(0).max(1000).optional(),
+  fatG:         z.number().min(0).max(500).optional(),
+  fiberG:       z.number().min(0).max(200).optional(),
   ingredients:  z.array(z.object({
     name:        z.string().min(1).max(200),
-    quantityG:   z.number().min(0.1).max(10000),
+    quantityG:   z.number().min(0).max(10000).optional(),
     foodItemId:  z.string().uuid().optional(),
     sortOrder:   z.number().int().min(0).default(0),
   })).max(50).optional(),
@@ -304,7 +310,7 @@ export const nutritionRoutes: FastifyPluginAsync = async (app) => {
         const foodMap = new Map(foodItems.map(f => [f.id, f]))
 
         for (const ing of body.ingredients) {
-          if (!ing.foodItemId) continue
+          if (!ing.foodItemId || !ing.quantityG) continue
           const fi = foodMap.get(ing.foodItemId)
           if (!fi) continue
           const ratio = ing.quantityG / 100
@@ -318,6 +324,23 @@ export const nutritionRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const servings = body.servings
+    // Macros directes > calculées depuis les ingrédients
+    const directMacros = body.calories != null || body.proteinG != null ||
+                         body.carbsG   != null || body.fatG     != null
+    const finalCalories = directMacros
+      ? (body.calories ?? null)
+      : (hasNutritionData ? Math.round(totalCalories / servings) : null)
+    const finalProtein  = directMacros
+      ? (body.proteinG ?? null)
+      : (hasNutritionData ? Math.round(totalProtein / servings * 10) / 10 : null)
+    const finalCarbs    = directMacros
+      ? (body.carbsG ?? null)
+      : (hasNutritionData ? Math.round(totalCarbs / servings * 10) / 10 : null)
+    const finalFat      = directMacros
+      ? (body.fatG ?? null)
+      : (hasNutritionData ? Math.round(totalFat / servings * 10) / 10 : null)
+    const finalFiber    = body.fiberG ?? (hasNutritionData ? Math.round(totalFiber / servings * 10) / 10 : null)
+
     const row = await queryOne<{ id: string }>(
       `INSERT INTO recipes
          (user_id, name, description, servings,
@@ -327,11 +350,7 @@ export const nutritionRoutes: FastifyPluginAsync = async (app) => {
        RETURNING id`,
       [
         userId, body.name, body.description ?? null, servings,
-        hasNutritionData ? Math.round(totalCalories / servings) : null,
-        hasNutritionData ? Math.round(totalProtein  / servings * 10) / 10 : null,
-        hasNutritionData ? Math.round(totalCarbs    / servings * 10) / 10 : null,
-        hasNutritionData ? Math.round(totalFat      / servings * 10) / 10 : null,
-        hasNutritionData ? Math.round(totalFiber    / servings * 10) / 10 : null,
+        finalCalories, finalProtein, finalCarbs, finalFat, finalFiber,
         body.prepMinutes ?? null, body.cookMinutes ?? null,
         body.notes ?? null,
       ]
