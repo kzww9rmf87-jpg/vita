@@ -19,8 +19,8 @@ struct SportHubView: View {
                     }
                     .buttonStyle(.plain)
 
-                    // Trouver mon activité — découverte de préférences
-                    NavigationLink(destination: SportDiscoverView()) {
+                    // Trouver mon activité — découverte conversationnelle
+                    NavigationLink(destination: SportDiscoveryView()) {
                         HubCard(
                             icon: "sparkles",
                             title: "Trouver mon activité",

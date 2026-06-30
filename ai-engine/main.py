@@ -33,6 +33,12 @@ from training_planner import (
     TrainingPlannerAgent, TrainingPlannerInput,
     SportDiscovererAgent, SportDiscoverInput,
 )
+from discovery import (
+    DiscoveryEngine,
+    DiscoveryStartInput,
+    DiscoveryMessageInput,
+    DiscoveryReactInput,
+)
 
 settings = get_settings()
 
@@ -393,6 +399,63 @@ async def training_planner_discover(
         agent  = SportDiscovererAgent()
         result = await agent.discover(req)
         return result.model_dump(mode="json")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/discovery/start")
+async def discovery_start(
+    req: DiscoveryStartInput,
+    _: bool = Depends(verify_service_token),
+):
+    """
+    Démarre une session de découverte conversationnelle.
+    Retourne le message d'ouverture de VITA pour le domaine demandé.
+    """
+    try:
+        engine = DiscoveryEngine()
+        result = engine.start(req)
+        return result.model_dump(mode="json")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/discovery/message")
+async def discovery_message(
+    req: DiscoveryMessageInput,
+    _: bool = Depends(verify_service_token),
+):
+    """
+    Traite un message utilisateur dans la session de découverte.
+    Retourne la réponse VITA + l'état courant (status, synthesis éventuelle, propositions).
+    """
+    try:
+        engine = DiscoveryEngine()
+        result = engine.message(req)
+        return result.model_dump(mode="json")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/discovery/react")
+async def discovery_react(
+    req: DiscoveryReactInput,
+    _: bool = Depends(verify_service_token),
+):
+    """
+    Traite la réaction de l'utilisateur aux propositions d'activités.
+    Retourne soit de nouvelles propositions, soit un message de clôture.
+    """
+    try:
+        engine = DiscoveryEngine()
+        result = engine.react(req)
+        return result.model_dump(mode="json")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -581,6 +581,103 @@ export async function requestSportDiscover(
   )
 }
 
+// ── Discovery Engine ──────────────────────────────────────────────────────────
+
+export interface DiscoveryExchangePayload {
+  role: 'vita' | 'user'
+  content: string
+}
+
+export interface DiscoverySynthesisPayload {
+  rapport_au_sport:       string | null
+  motivations:            string[]
+  freins:                 string[]
+  experiences_positives:  string[]
+  experiences_negatives:  string[]
+  contexte_prefere:       string[]
+  contraintes:            string[]
+  personnalite:           string | null
+  resume_valide:          string | null
+}
+
+export interface ActivityProposalPayload {
+  name:             string
+  why_it_fits:      string
+  first_step:       string
+  frequency:        string
+  constraint_level: string
+}
+
+export interface DiscoveryStartResponse {
+  vita_opening:    string
+  already_started: boolean
+}
+
+export interface DiscoveryMessageResponse {
+  vita_response: string
+  new_status:    string
+  synthesis:     DiscoverySynthesisPayload | null
+  proposals:     ActivityProposalPayload[]
+}
+
+export interface DiscoveryReactResponse {
+  vita_response:  string
+  new_proposals:  ActivityProposalPayload[]
+  is_complete:    boolean
+}
+
+export async function requestDiscoveryStart(
+  userId: string,
+  domain = 'sport',
+): Promise<DiscoveryStartResponse> {
+  return callAIEngine<object, DiscoveryStartResponse>(
+    '/discovery/start',
+    { user_id: userId, domain },
+  )
+}
+
+export async function requestDiscoveryMessage(
+  userId: string,
+  domain: string,
+  exchanges: DiscoveryExchangePayload[],
+  userMessage: string,
+  status: string,
+): Promise<DiscoveryMessageResponse> {
+  return callAIEngine<object, DiscoveryMessageResponse>(
+    '/discovery/message',
+    {
+      user_id:      userId,
+      domain,
+      exchanges,
+      user_message: userMessage,
+      status,
+    },
+    TIMEOUT_MS_LONG,
+  )
+}
+
+export async function requestDiscoveryReact(
+  userId: string,
+  domain: string,
+  proposals: ActivityProposalPayload[],
+  acceptedNames: string[],
+  refusedNames: string[],
+  synthesis: DiscoverySynthesisPayload | null,
+): Promise<DiscoveryReactResponse> {
+  return callAIEngine<object, DiscoveryReactResponse>(
+    '/discovery/react',
+    {
+      user_id:       userId,
+      domain,
+      proposals,
+      accepted_names: acceptedNames,
+      refused_names:  refusedNames,
+      synthesis,
+    },
+    TIMEOUT_MS_LONG,
+  )
+}
+
 export async function requestTrainingPlan(
   userId: string,
   sportProfile: SportProfilePayload,
