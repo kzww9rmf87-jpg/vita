@@ -17,13 +17,13 @@ from unittest import mock
 
 from training_planner.models import (
     FitnessLevel, SessionType,
-    SportProfileInput, TrainingPlannerInput,
+    SportProfileInput, SportIdentityInput, TrainingPlannerInput,
     PlannedSession, TrainingWeekPlan,
 )
 from training_planner.planner import (
     plan_locally, build_rationale, _infer_type, _adjusted_duration,
 )
-from training_planner.agent import TrainingPlannerAgent
+from training_planner.agent import TrainingPlannerAgent, _merge_identity
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -335,3 +335,141 @@ def test_parsed_training_context_all_optional():
     ctx = ParsedTrainingContext()
     assert ctx.sessions is None
     assert ctx.program_name is None
+
+
+# ── Sprint 12.4 — _merge_identity ────────────────────────────────────────────
+
+def make_identity(**kwargs) -> SportIdentityInput:
+    defaults = dict(
+        rapport_au_sport="Mauvais souvenir du sport scolaire",
+        motivations=["me sentir mieux", "énergie"],
+        freins=["manque de temps"],
+        experiences_positives=["randonnée"],
+        activites_recommandees=["Marche", "Yoga"],
+        activites_refusees=["Musculation en salle"],
+        contexte_prefere=["dehors"],
+        resume_valide="Tu cherches à te réconcilier avec le mouvement.",
+    )
+    defaults.update(kwargs)
+    return SportIdentityInput(**defaults)
+
+
+def make_input_with_identity(identity: "SportIdentityInput | None" = None) -> TrainingPlannerInput:
+    return TrainingPlannerInput(
+        user_id="test-user",
+        sport_profile=SportProfileInput(
+            fitness_level=FitnessLevel.beginner,
+            preferred_activities=["Course"],
+            sessions_per_week=3,
+            session_duration_min=30,
+            available_days=[1, 3, 5],
+            attractive_activities=["Natation"],
+            rejected_activities=["HIIT"],
+            preferred_context=[],
+        ),
+        sport_identity=identity,
+    )
+
+
+def test_merge_identity_prepends_recommended_activities():
+    identity = make_identity(activites_recommandees=["Marche", "Yoga"])
+    inp = make_input_with_identity(identity)
+    merged = _merge_identity(inp)
+    attractive = merged.sport_profile.attractive_activities
+    # Activités de la découverte en premier
+    assert attractive[0] == "Marche"
+    assert attractive[1] == "Yoga"
+    # Suivi par celles du profil formulaire
+    assert "Natation" in attractive
+
+
+def test_merge_identity_union_refused_activities():
+    identity = make_identity(activites_refusees=["Musculation en salle"])
+    inp = make_input_with_identity(identity)
+    merged = _merge_identity(inp)
+    rejected = merged.sport_profile.rejected_activities
+    assert "HIIT" in rejected
+    assert "Musculation en salle" in rejected
+
+
+def test_merge_identity_no_duplicates():
+    identity = make_identity(activites_recommandees=["Natation"])  # déjà dans attractive
+    inp = make_input_with_identity(identity)
+    merged = _merge_identity(inp)
+    attractive = merged.sport_profile.attractive_activities
+    assert attractive.count("Natation") == 1
+
+
+def test_merge_identity_uses_identity_context_when_profile_empty():
+    identity = make_identity(contexte_prefere=["dehors", "maison"])
+    inp = make_input_with_identity(identity)
+    merged = _merge_identity(inp)
+    assert merged.sport_profile.preferred_context == ["dehors", "maison"]
+
+
+def test_merge_identity_keeps_profile_context_when_present():
+    identity = make_identity(contexte_prefere=["dehors"])
+    inp = make_input_with_identity(identity)
+    # Profil a déjà un contexte préféré
+    inp = inp.model_copy(update={
+        "sport_profile": inp.sport_profile.model_copy(update={"preferred_context": ["salle"]})
+    })
+    merged = _merge_identity(inp)
+    assert merged.sport_profile.preferred_context == ["salle"]
+
+
+def test_merge_identity_noop_without_identity():
+    inp = make_input_with_identity(identity=None)
+    merged = _merge_identity(inp)
+    # Retourne l'input tel quel
+    assert merged is inp
+
+
+def test_should_call_claude_with_sport_identity():
+    agent = TrainingPlannerAgent()
+    identity = make_identity()
+    inp = make_input_with_identity(identity)
+    sessions = plan_locally(inp)
+    assert agent._should_call_claude(inp, sessions) is True
+
+
+def test_intensity_label_set_locally():
+    """Toutes les séances ont intensity_label après plan()."""
+    import asyncio
+    agent = TrainingPlannerAgent()
+    inp = make_input_with_identity(None)
+
+    async def run():
+        return await agent.plan(inp)
+
+    result = asyncio.get_event_loop().run_until_complete(run())
+    for s in result.sessions:
+        assert s.intensity_label is not None
+        assert s.intensity_label in ("douce", "modérée", "soutenue")
+
+
+def test_used_identity_true_when_identity_present():
+    import asyncio
+    agent = TrainingPlannerAgent()
+    identity = make_identity()
+    inp = make_input_with_identity(identity)
+
+    async def run():
+        return await agent.plan(inp)
+
+    with mock.patch.object(agent, "_refine_with_claude", side_effect=Exception("timeout")):
+        result = asyncio.get_event_loop().run_until_complete(run())
+
+    assert result.used_identity is True
+
+
+def test_used_identity_false_when_no_identity():
+    import asyncio
+    agent = TrainingPlannerAgent()
+    inp = make_input_with_identity(None)
+
+    async def run():
+        return await agent.plan(inp)
+
+    result = asyncio.get_event_loop().run_until_complete(run())
+    assert result.used_identity is False

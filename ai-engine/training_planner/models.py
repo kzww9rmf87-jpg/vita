@@ -71,9 +71,26 @@ class SportDiscoverResult(BaseModel):
     used_claude:        bool = False
 
 
+class SportIdentityInput(BaseModel):
+    """Profil riche issu de la découverte conversationnelle (Sprint 12.3)."""
+    rapport_au_sport:        Optional[str] = None
+    motivations:             list[str]     = Field(default_factory=list)
+    freins:                  list[str]     = Field(default_factory=list)
+    experiences_positives:   list[str]     = Field(default_factory=list)
+    experiences_negatives:   list[str]     = Field(default_factory=list)
+    personnalite:            Optional[str] = None
+    contexte_prefere:        list[str]     = Field(default_factory=list)
+    contraintes:             list[str]     = Field(default_factory=list)
+    activites_recommandees:  list[str]     = Field(default_factory=list)
+    activites_refusees:      list[str]     = Field(default_factory=list)
+    resume_valide:           Optional[str] = None
+
+
 class TrainingPlannerInput(BaseModel):
     user_id:         str
     sport_profile:   SportProfileInput
+    # Sprint 12.4 — identité sportive issue de la découverte conversationnelle
+    sport_identity:  Optional[SportIdentityInput] = None
     # Hooks contextuels — préparés, utilisés à partir de Sprint 13
     has_sleep_issue: bool      = False
     is_high_energy:  bool      = False
@@ -93,15 +110,22 @@ class TrainingPlannerInput(BaseModel):
 # ── Output ─────────────────────────────────────────────────────────────────────
 
 class PlannedSession(BaseModel):
-    day_of_week:   int
-    activity_name: str
-    session_type:  SessionType
-    duration_min:  int
-    notes:         Optional[str] = None
-    sort_order:    int = 0
+    day_of_week:       int
+    activity_name:     str
+    session_type:      SessionType
+    duration_min:      int
+    notes:             Optional[str] = None
+    sort_order:        int           = 0
+    # Sprint 12.4 — enrichissement de la carte séance
+    intensity_label:   Optional[str] = None   # douce | modérée | soutenue
+    session_goal:      Optional[str] = None   # objectif de la séance (1 phrase)
+    simple_instruction:Optional[str] = None   # consigne simple et concrète
+    progression_note:  Optional[str] = None   # note de progression bienveillante
+    why_this_session:  Optional[str] = None   # pourquoi VITA l'a choisie
 
 
 class TrainingWeekPlan(BaseModel):
-    sessions:    list[PlannedSession]
-    rationale:   str
-    used_claude: bool = False
+    sessions:         list[PlannedSession]
+    rationale:        str
+    used_claude:      bool = False
+    used_identity:    bool = False   # True si sport_identity a influencé le plan

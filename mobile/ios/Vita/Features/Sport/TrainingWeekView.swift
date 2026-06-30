@@ -228,6 +228,20 @@ struct SuggestionSheet: View {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: VitaSpacing.lg) {
 
+                        // Bannière découverte conversationnelle
+                        if plan.usedIdentity {
+                            HStack(spacing: VitaSpacing.sm) {
+                                Image(systemName: "sparkles")
+                                    .foregroundStyle(VitaColor.accent)
+                                Text("VITA s'appuie sur ce que tu lui as confié dans Trouver mon activité.")
+                                    .font(VitaFont.caption())
+                                    .foregroundStyle(VitaColor.textSecondary)
+                            }
+                            .padding(VitaSpacing.sm)
+                            .background(VitaColor.accent.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: VitaRadius.sm))
+                        }
+
                         // Message doux si plan basé sur valeurs par défaut
                         if !plan.hasProfile {
                             HStack(spacing: VitaSpacing.sm) {

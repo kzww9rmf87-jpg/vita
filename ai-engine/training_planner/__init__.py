@@ -3,6 +3,7 @@ from .discoverer import SportDiscovererAgent
 from .models import (
     TrainingPlannerInput,
     SportProfileInput,
+    SportIdentityInput,
     TrainingWeekPlan,
     PlannedSession,
     FitnessLevel,
@@ -17,6 +18,7 @@ __all__ = [
     "SportDiscovererAgent",
     "TrainingPlannerInput",
     "SportProfileInput",
+    "SportIdentityInput",
     "TrainingWeekPlan",
     "PlannedSession",
     "FitnessLevel",

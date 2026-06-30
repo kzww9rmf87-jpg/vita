@@ -7,7 +7,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { query, queryOne } from '../db.js'
-import { requestTrainingPlan, requestSportDiscover, AIEngineError } from '../ai-client.js'
+import { requestTrainingPlan, requestSportDiscover, AIEngineError, type SportIdentityPayload } from '../ai-client.js'
 
 // ── Schémas ───────────────────────────────────────────────────────────────────
 
@@ -432,6 +432,7 @@ export const sportRoutes: FastifyPluginAsync = async (app) => {
   app.post('/training-planner/suggest', async (req, reply) => {
     const userId = (req.user as { sub: string }).sub
 
+    // Charge le profil sportif (formulaire)
     const row = await queryOne<{
       fitness_level:         string
       preferred_activities:  string[]
@@ -454,8 +455,18 @@ export const sportRoutes: FastifyPluginAsync = async (app) => {
       [userId]
     )
 
+    // Charge l'identité sportive issue de la découverte conversationnelle
+    const identityRow = await queryOne<SportIdentityPayload>(
+      `SELECT rapport_au_sport, motivations, freins, experiences_positives,
+              experiences_negatives, personnalite, contexte_prefere, contraintes,
+              activites_recommandees, activites_refusees, resume_valide
+       FROM sport_identity WHERE user_id = $1`,
+      [userId]
+    )
+
     // Sans profil : valeurs par défaut identiques à SportProfileSchema
-    const hasProfile = row !== null
+    const hasProfile   = row !== null
+    const hasIdentity  = identityRow !== null
     const profile = row ?? {
       fitness_level:         'beginner',
       preferred_activities:  [] as string[],
@@ -472,33 +483,44 @@ export const sportRoutes: FastifyPluginAsync = async (app) => {
     }
 
     try {
-      const result = await requestTrainingPlan(userId, {
-        fitness_level:         profile.fitness_level,
-        preferred_activities:  profile.preferred_activities,
-        sessions_per_week:     profile.sessions_per_week,
-        session_duration_min:  profile.session_duration_min,
-        available_days:        profile.available_days,
-        context:               profile.context,
-        motivation:            profile.motivation            ?? undefined,
-        attractive_activities: profile.attractive_activities,
-        rejected_activities:   profile.rejected_activities,
-        preferred_context:     profile.preferred_context,
-        apprehension_level:    profile.apprehension_level,
-        realistic_time_min:    profile.realistic_time_min   ?? undefined,
-      })
+      const result = await requestTrainingPlan(
+        userId,
+        {
+          fitness_level:         profile.fitness_level,
+          preferred_activities:  profile.preferred_activities,
+          sessions_per_week:     profile.sessions_per_week,
+          session_duration_min:  profile.session_duration_min,
+          available_days:        profile.available_days,
+          context:               profile.context,
+          motivation:            profile.motivation            ?? undefined,
+          attractive_activities: profile.attractive_activities,
+          rejected_activities:   profile.rejected_activities,
+          preferred_context:     profile.preferred_context,
+          apprehension_level:    profile.apprehension_level,
+          realistic_time_min:    profile.realistic_time_min   ?? undefined,
+        },
+        { sportIdentity: identityRow ?? null }
+      )
 
       return reply.send({
         sessions: result.sessions.map(s => ({
-          dayOfWeek:    s.day_of_week,
-          activityName: s.activity_name,
-          sessionType:  s.session_type,
-          durationMin:  s.duration_min,
-          notes:        s.notes,
-          sortOrder:    s.sort_order,
+          dayOfWeek:          s.day_of_week,
+          activityName:       s.activity_name,
+          sessionType:        s.session_type,
+          durationMin:        s.duration_min,
+          notes:              s.notes,
+          sortOrder:          s.sort_order,
+          intensityLabel:     s.intensity_label,
+          sessionGoal:        s.session_goal,
+          simpleInstruction:  s.simple_instruction,
+          progressionNote:    s.progression_note,
+          whyThisSession:     s.why_this_session,
         })),
-        rationale:  result.rationale,
-        usedClaude: result.used_claude,
+        rationale:    result.rationale,
+        usedClaude:   result.used_claude,
+        usedIdentity: result.used_identity,
         hasProfile,
+        hasIdentity,
       })
     } catch (err) {
       if (err instanceof AIEngineError) {

@@ -527,19 +527,40 @@ export interface SportProfilePayload {
   realistic_time_min?:    number | null
 }
 
+export interface SportIdentityPayload {
+  rapport_au_sport:       string | null
+  motivations:            string[]
+  freins:                 string[]
+  experiences_positives:  string[]
+  experiences_negatives:  string[]
+  personnalite:           string | null
+  contexte_prefere:       string[]
+  contraintes:            string[]
+  activites_recommandees: string[]
+  activites_refusees:     string[]
+  resume_valide:          string | null
+}
+
 export interface PlannedSessionAI {
-  day_of_week:   number
-  activity_name: string
-  session_type:  string
-  duration_min:  number
-  notes:         string | null
-  sort_order:    number
+  day_of_week:        number
+  activity_name:      string
+  session_type:       string
+  duration_min:       number
+  notes:              string | null
+  sort_order:         number
+  // Sprint 12.4 — enrichissement narratif
+  intensity_label:    string | null
+  session_goal:       string | null
+  simple_instruction: string | null
+  progression_note:   string | null
+  why_this_session:   string | null
 }
 
 export interface TrainingWeekPlanResponse {
-  sessions:    PlannedSessionAI[]
-  rationale:   string
-  used_claude: boolean
+  sessions:      PlannedSessionAI[]
+  rationale:     string
+  used_claude:   boolean
+  used_identity: boolean
 }
 
 // ── Sport Discover (Sprint 12.2) ──────────────────────────────────────────────
@@ -682,6 +703,7 @@ export async function requestTrainingPlan(
   userId: string,
   sportProfile: SportProfilePayload,
   options: {
+    sportIdentity?:  SportIdentityPayload | null
     hasSleepIssue?:  boolean
     isHighEnergy?:   boolean
     equipment?:      string[]
@@ -694,6 +716,7 @@ export async function requestTrainingPlan(
     {
       user_id:         userId,
       sport_profile:   sportProfile,
+      sport_identity:  options.sportIdentity  ?? null,
       has_sleep_issue: options.hasSleepIssue  ?? false,
       is_high_energy:  options.isHighEnergy   ?? false,
       equipment:       options.equipment      ?? [],

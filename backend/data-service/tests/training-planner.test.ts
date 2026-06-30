@@ -75,12 +75,43 @@ const MOCK_DISCOVER_RESPONSE = {
 
 const MOCK_AI_RESPONSE = {
   sessions: [
-    { day_of_week: 1, activity_name: 'Musculation', session_type: 'strength', duration_min: 45, notes: null, sort_order: 0 },
-    { day_of_week: 3, activity_name: 'Course',      session_type: 'cardio',   duration_min: 45, notes: null, sort_order: 1 },
-    { day_of_week: 5, activity_name: 'Mobilité',    session_type: 'mobility', duration_min: 36, notes: null, sort_order: 2 },
+    {
+      day_of_week: 1, activity_name: 'Musculation', session_type: 'strength',
+      duration_min: 45, notes: null, sort_order: 0,
+      intensity_label: 'modérée', session_goal: 'Renforcer en douceur',
+      simple_instruction: 'Commence avec des poids légers', progression_note: null,
+      why_this_session: 'Tu as mentionné vouloir te sentir plus fort',
+    },
+    {
+      day_of_week: 3, activity_name: 'Course', session_type: 'cardio',
+      duration_min: 45, notes: null, sort_order: 1,
+      intensity_label: 'modérée', session_goal: null, simple_instruction: null,
+      progression_note: null, why_this_session: null,
+    },
+    {
+      day_of_week: 5, activity_name: 'Mobilité', session_type: 'mobility',
+      duration_min: 36, notes: null, sort_order: 2,
+      intensity_label: 'douce', session_goal: null, simple_instruction: null,
+      progression_note: null, why_this_session: null,
+    },
   ],
-  rationale:   'VITA a organisé 3 séances (Lun, Mer, Ven).',
-  used_claude: false,
+  rationale:     'VITA a organisé 3 séances (Lun, Mer, Ven).',
+  used_claude:   false,
+  used_identity: false,
+}
+
+const MOCK_IDENTITY = {
+  rapport_au_sport:       'J\'ai eu une mauvaise expérience au collège avec la gym',
+  motivations:            ['me sentir mieux dans mon corps', 'avoir plus d\'énergie'],
+  freins:                 ['manque de temps', 'peur du regard des autres'],
+  experiences_positives:  ['randonnée en famille'],
+  experiences_negatives:  ['sport collectif imposé'],
+  personnalite:           'Introverti, préfère les activités seul',
+  contexte_prefere:       ['dehors', 'maison'],
+  contraintes:            ['dos sensible'],
+  activites_recommandees: ['Marche', 'Yoga'],
+  activites_refusees:     ['Musculation en salle'],
+  resume_valide:          'Tu cherches à te réconcilier avec le mouvement, sans pression.',
 }
 
 // ── POST /sport/training-planner/suggest ─────────────────────────────────────
@@ -89,12 +120,15 @@ describe('POST /sport/training-planner/suggest', () => {
   beforeEach(() => { vi.clearAllMocks() })
 
   it('200 with default profile when no sport profile exists', async () => {
+    // queryOne appelé 2x : profil (null) puis identity (null)
     ;(queryOne as any).mockResolvedValue(null)
     ;(requestTrainingPlan as any).mockResolvedValue(MOCK_AI_RESPONSE)
     const app = await makeApp()
     const res = await app.inject({ method: 'POST', url: '/sport/training-planner/suggest' })
     expect(res.statusCode).toBe(200)
-    expect(res.json().hasProfile).toBe(false)
+    const body = res.json()
+    expect(body.hasProfile).toBe(false)
+    expect(body.hasIdentity).toBe(false)
   })
 
   it('uses default profile values when no profile exists', async () => {
@@ -111,12 +145,15 @@ describe('POST /sport/training-planner/suggest', () => {
         attractive_activities: [],
         rejected_activities:   [],
         apprehension_level:    'aucune',
-      })
+      }),
+      expect.objectContaining({ sportIdentity: null })
     )
   })
 
   it('returns 200 with camelCase sessions and rationale', async () => {
-    ;(queryOne as any).mockResolvedValue(MOCK_PROFILE)
+    ;(queryOne as any)
+      .mockResolvedValueOnce(MOCK_PROFILE)  // profil
+      .mockResolvedValueOnce(null)           // identity
     ;(requestTrainingPlan as any).mockResolvedValue(MOCK_AI_RESPONSE)
     const app = await makeApp()
     const res = await app.inject({ method: 'POST', url: '/sport/training-planner/suggest' })
@@ -125,17 +162,22 @@ describe('POST /sport/training-planner/suggest', () => {
     expect(body.rationale).toBe('VITA a organisé 3 séances (Lun, Mer, Ven).')
     expect(body.sessions).toHaveLength(3)
     expect(body.sessions[0]).toMatchObject({
-      dayOfWeek:    1,
-      activityName: 'Musculation',
-      sessionType:  'strength',
-      durationMin:  45,
+      dayOfWeek:      1,
+      activityName:   'Musculation',
+      sessionType:    'strength',
+      durationMin:    45,
+      intensityLabel: 'modérée',
+      sessionGoal:    'Renforcer en douceur',
     })
     expect(body.usedClaude).toBe(false)
+    expect(body.usedIdentity).toBe(false)
     expect(body.hasProfile).toBe(true)
   })
 
   it('passes profile fields including sprint 12.2 fields to AI engine', async () => {
-    ;(queryOne as any).mockResolvedValue(MOCK_PROFILE)
+    ;(queryOne as any)
+      .mockResolvedValueOnce(MOCK_PROFILE)
+      .mockResolvedValueOnce(null)
     ;(requestTrainingPlan as any).mockResolvedValue(MOCK_AI_RESPONSE)
     const app = await makeApp()
     await app.inject({ method: 'POST', url: '/sport/training-planner/suggest' })
@@ -148,8 +190,42 @@ describe('POST /sport/training-planner/suggest', () => {
         attractive_activities: [],
         rejected_activities:   [],
         apprehension_level:    'aucune',
-      })
+      }),
+      expect.objectContaining({ sportIdentity: null })
     )
+  })
+
+  it('passes sport_identity to AI engine when discovery exists', async () => {
+    ;(queryOne as any)
+      .mockResolvedValueOnce(MOCK_PROFILE)
+      .mockResolvedValueOnce(MOCK_IDENTITY)
+    ;(requestTrainingPlan as any).mockResolvedValue({
+      ...MOCK_AI_RESPONSE,
+      used_identity: true,
+    })
+    const app = await makeApp()
+    const res = await app.inject({ method: 'POST', url: '/sport/training-planner/suggest' })
+    expect(res.statusCode).toBe(200)
+    expect(requestTrainingPlan).toHaveBeenCalledWith(
+      'user-uuid-123',
+      expect.any(Object),
+      expect.objectContaining({ sportIdentity: MOCK_IDENTITY })
+    )
+    const body = res.json()
+    expect(body.usedIdentity).toBe(true)
+    expect(body.hasIdentity).toBe(true)
+  })
+
+  it('returns usedIdentity=false when identity absent', async () => {
+    ;(queryOne as any)
+      .mockResolvedValueOnce(MOCK_PROFILE)
+      .mockResolvedValueOnce(null)
+    ;(requestTrainingPlan as any).mockResolvedValue(MOCK_AI_RESPONSE)
+    const app = await makeApp()
+    const res = await app.inject({ method: 'POST', url: '/sport/training-planner/suggest' })
+    const body = res.json()
+    expect(body.usedIdentity).toBe(false)
+    expect(body.hasIdentity).toBe(false)
   })
 
   it('502 when AI engine is unreachable', async () => {

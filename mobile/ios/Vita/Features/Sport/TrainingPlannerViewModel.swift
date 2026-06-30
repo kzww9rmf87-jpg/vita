@@ -3,24 +3,53 @@ import Foundation
 // MARK: — Modèles AI Planner
 
 struct AIPlannedSession: Identifiable, Codable {
-    let id = UUID()
+    let id            = UUID()
     let dayOfWeek:    Int
     let activityName: String
     let sessionType:  String
     let durationMin:  Int
     let notes:        String?
     let sortOrder:    Int
+    // Sprint 12.4 — enrichissement carte séance (optionnels pour rétrocompat)
+    var intensityLabel:     String?
+    var sessionGoal:        String?
+    var simpleInstruction:  String?
+    var progressionNote:    String?
+    var whyThisSession:     String?
 
     enum CodingKeys: String, CodingKey {
         case dayOfWeek, activityName, sessionType, durationMin, notes, sortOrder
+        case intensityLabel, sessionGoal, simpleInstruction, progressionNote, whyThisSession
+    }
+
+    init(
+        dayOfWeek: Int, activityName: String, sessionType: String,
+        durationMin: Int, notes: String? = nil, sortOrder: Int,
+        intensityLabel: String? = nil, sessionGoal: String? = nil,
+        simpleInstruction: String? = nil, progressionNote: String? = nil,
+        whyThisSession: String? = nil
+    ) {
+        self.dayOfWeek        = dayOfWeek
+        self.activityName     = activityName
+        self.sessionType      = sessionType
+        self.durationMin      = durationMin
+        self.notes            = notes
+        self.sortOrder        = sortOrder
+        self.intensityLabel   = intensityLabel
+        self.sessionGoal      = sessionGoal
+        self.simpleInstruction = simpleInstruction
+        self.progressionNote  = progressionNote
+        self.whyThisSession   = whyThisSession
     }
 }
 
 struct AITrainingWeekPlan: Codable {
-    let sessions:   [AIPlannedSession]
-    let rationale:  String
-    let usedClaude: Bool
-    let hasProfile: Bool    // false = plan généré avec profil par défaut
+    let sessions:     [AIPlannedSession]
+    let rationale:    String
+    let usedClaude:   Bool
+    let usedIdentity: Bool   // true si sport_identity a influencé le plan
+    let hasProfile:   Bool   // false = plan généré avec profil par défaut
+    let hasIdentity:  Bool   // true si une découverte conversationnelle existe
 }
 
 // MARK: — ViewModel
