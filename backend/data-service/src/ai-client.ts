@@ -498,3 +498,55 @@ export async function analyzeJournalEntry(
     entry_id: entryId,
   })
 }
+
+// ── Training Planner (Sprint 12) ──────────────────────────────────────────────
+
+export interface SportProfilePayload {
+  fitness_level:        string
+  preferred_activities: string[]
+  sessions_per_week:    number
+  session_duration_min: number
+  available_days:       number[]
+  context:              string | null
+}
+
+export interface PlannedSessionAI {
+  day_of_week:   number
+  activity_name: string
+  session_type:  string
+  duration_min:  number
+  notes:         string | null
+  sort_order:    number
+}
+
+export interface TrainingWeekPlanResponse {
+  sessions:    PlannedSessionAI[]
+  rationale:   string
+  used_claude: boolean
+}
+
+export async function requestTrainingPlan(
+  userId: string,
+  sportProfile: SportProfilePayload,
+  options: {
+    hasSleepIssue?:  boolean
+    isHighEnergy?:   boolean
+    equipment?:      string[]
+    painAreas?:      string[]
+    preferOutdoors?: boolean
+  } = {}
+): Promise<TrainingWeekPlanResponse> {
+  return callAIEngine<object, TrainingWeekPlanResponse>(
+    '/training-planner/plan',
+    {
+      user_id:         userId,
+      sport_profile:   sportProfile,
+      has_sleep_issue: options.hasSleepIssue  ?? false,
+      is_high_energy:  options.isHighEnergy   ?? false,
+      equipment:       options.equipment      ?? [],
+      pain_areas:      options.painAreas      ?? [],
+      prefer_outdoors: options.preferOutdoors ?? false,
+    },
+    TIMEOUT_MS_LONG,
+  )
+}

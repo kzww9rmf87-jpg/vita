@@ -21,6 +21,11 @@
 		F1F86A2FE7D841FE9EFA40AD /* SportProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5AAFB6087F1480CBF2A5608 /* SportProfileView.swift */; };
 		E7291F91E0C1442B916C678A /* TrainingPlanViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C170F9B2CB04F67AC40501A /* TrainingPlanViewModel.swift */; };
 		DFAC93B93CE84EA993F71BFB /* TrainingPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21CB9594AB1F4D569157949B /* TrainingPlanView.swift */; };
+		B2C3D4E5F6A7B8C9D0E1F2A3 /* TrainingPlannerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* TrainingPlannerViewModel.swift */; };
+		D4E5F6A7B8C9D0E1F2A3B4C5 /* TrainingSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F6A7B8C9D0E1F2A3B4 /* TrainingSessionView.swift */; };
+		F6A7B8C9D0E1F2A3B4C5D6E7 /* TrainingWeekView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F6A7B8C9D0E1F2A3B4C5D6 /* TrainingWeekView.swift */; };
+		H8I9J0K1L2M3N4O5P6Q7R8S9 /* TrainingHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G7H8I9J0K1L2M3N4O5P6Q7R8 /* TrainingHistoryView.swift */; };
+
 		E5CA17A90C0445D6AAF31CED /* ActivityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 604FCD0BA2BB42979994E23E /* ActivityViewModel.swift */; };
 		BDF4900EE6B446D28194E883 /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1AE0515AD224F5DA559553C /* ActivityView.swift */; };
 		546928336F57440CB02909D4 /* NutritionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2183B495694AF7A8638E42 /* NutritionViewModel.swift */; };
@@ -75,6 +80,11 @@
 		E5AAFB6087F1480CBF2A5608 /* SportProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SportProfileView.swift; sourceTree = "<group>"; };
 		2C170F9B2CB04F67AC40501A /* TrainingPlanViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPlanViewModel.swift; sourceTree = "<group>"; };
 		21CB9594AB1F4D569157949B /* TrainingPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPlanView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* TrainingPlannerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPlannerViewModel.swift; sourceTree = "<group>"; };
+		C3D4E5F6A7B8C9D0E1F2A3B4 /* TrainingSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingSessionView.swift; sourceTree = "<group>"; };
+		E5F6A7B8C9D0E1F2A3B4C5D6 /* TrainingWeekView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingWeekView.swift; sourceTree = "<group>"; };
+		G7H8I9J0K1L2M3N4O5P6Q7R8 /* TrainingHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingHistoryView.swift; sourceTree = "<group>"; };
+
 		604FCD0BA2BB42979994E23E /* ActivityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityViewModel.swift; sourceTree = "<group>"; };
 		D1AE0515AD224F5DA559553C /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		FC2183B495694AF7A8638E42 /* NutritionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionViewModel.swift; sourceTree = "<group>"; };
@@ -333,6 +343,11 @@
 				E5AAFB6087F1480CBF2A5608 /* SportProfileView.swift */,
 				2C170F9B2CB04F67AC40501A /* TrainingPlanViewModel.swift */,
 				21CB9594AB1F4D569157949B /* TrainingPlanView.swift */,
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* TrainingPlannerViewModel.swift */,
+				C3D4E5F6A7B8C9D0E1F2A3B4 /* TrainingSessionView.swift */,
+				E5F6A7B8C9D0E1F2A3B4C5D6 /* TrainingWeekView.swift */,
+				G7H8I9J0K1L2M3N4O5P6Q7R8 /* TrainingHistoryView.swift */,
+
 			);
 			path = Sport;
 			sourceTree = "<group>";
@@ -479,6 +494,11 @@
 				F1F86A2FE7D841FE9EFA40AD /* SportProfileView.swift in Sources */,
 				E7291F91E0C1442B916C678A /* TrainingPlanViewModel.swift in Sources */,
 				DFAC93B93CE84EA993F71BFB /* TrainingPlanView.swift in Sources */,
+				B2C3D4E5F6A7B8C9D0E1F2A3 /* TrainingPlannerViewModel.swift in Sources */,
+				D4E5F6A7B8C9D0E1F2A3B4C5 /* TrainingSessionView.swift in Sources */,
+				F6A7B8C9D0E1F2A3B4C5D6E7 /* TrainingWeekView.swift in Sources */,
+				H8I9J0K1L2M3N4O5P6Q7R8S9 /* TrainingHistoryView.swift in Sources */,
+
 				E5CA17A90C0445D6AAF31CED /* ActivityViewModel.swift in Sources */,
 				BDF4900EE6B446D28194E883 /* ActivityView.swift in Sources */,
 				546928336F57440CB02909D4 /* NutritionViewModel.swift in Sources */,

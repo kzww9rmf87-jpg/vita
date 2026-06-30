@@ -29,6 +29,7 @@ from meal_planner import (
     MealPlannerAgent, SmartMealPlanInput, NutritionProfile, RecipeWithMacros,
     calculate_targets, prefill_recipe,
 )
+from training_planner import TrainingPlannerAgent, TrainingPlannerInput
 
 settings = get_settings()
 
@@ -355,6 +356,23 @@ async def meal_planner_recipe_prefill(
         servings = max(1, min(req.servings or 4, 20))
         result = await prefill_recipe(req.recipe_name, servings)
         return result.model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/training-planner/plan")
+async def training_planner_plan(
+    req: TrainingPlannerInput,
+    _: bool = Depends(verify_service_token),
+):
+    """
+    Génère un programme hebdomadaire personnalisé depuis le profil sportif.
+    Algorithme local déterministe + raffinement optionnel par Claude.
+    """
+    try:
+        agent  = TrainingPlannerAgent()
+        result = await agent.plan(req)
+        return result.model_dump(mode="json")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -9,7 +9,7 @@ struct SportHubView: View {
                 VStack(spacing: VitaSpacing.lg) {
 
                     // Plan de la semaine
-                    NavigationLink(destination: TrainingPlanView()) {
+                    NavigationLink(destination: TrainingWeekView()) {
                         HubCard(
                             icon: "calendar",
                             title: "Plan de la semaine",
@@ -32,7 +32,7 @@ struct SportHubView: View {
                     .buttonStyle(.plain)
 
                     // Mes séances
-                    NavigationLink(destination: SportSessionsView()) {
+                    NavigationLink(destination: TrainingHistoryView()) {
                         HubCard(
                             icon: "dumbbell.fill",
                             title: "Mes séances",
@@ -137,29 +137,6 @@ private struct HubCard: View {
 
 // MARK: — Sous-vues placeholder
 
-struct SportSessionsView: View {
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: VitaSpacing.lg) {
-                Image(systemName: "dumbbell.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.purple)
-                Text("Mes séances")
-                    .font(VitaFont.headline(20))
-                    .foregroundStyle(VitaColor.textPrimary)
-                Text("L'historique détaillé de vos séances sera disponible bientôt.")
-                    .font(VitaFont.body())
-                    .foregroundStyle(VitaColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, VitaSpacing.xl)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(VitaColor.background)
-            .navigationTitle("Mes séances")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-    }
-}
 
 struct SportRecoveryView: View {
     var body: some View {

@@ -1,13 +1,13 @@
 /**
  * Sport — routes data-service.
  *
- * Profil sportif et plans d'entraînement (Training Planner).
- * Pas de calcul intelligent — fondations uniquement (Sprint 11).
+ * Profil sportif, plans d'entraînement et AI Training Planner.
  * Auth : JWT obligatoire.
  */
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { query, queryOne } from '../db.js'
+import { requestTrainingPlan, AIEngineError } from '../ai-client.js'
 
 // ── Schémas ───────────────────────────────────────────────────────────────────
 
@@ -285,5 +285,67 @@ export const sportRoutes: FastifyPluginAsync = async (app) => {
 
     await query(`DELETE FROM training_plans WHERE id = $1`, [id])
     return reply.status(204).send()
+  })
+
+  // ── AI Training Planner ─────────────────────────────────────────────────────
+
+  // POST /sport/training-planner/suggest
+  // Génère une semaine d'entraînement depuis le profil sportif de l'utilisateur.
+  // Ne persiste rien — l'utilisateur sauvegarde ensuite via POST /sport/training-plans.
+  // Returns: TrainingWeekPlan
+  // Auth: JWT requis
+  app.post('/training-planner/suggest', async (req, reply) => {
+    const userId = (req.user as { sub: string }).sub
+
+    // Récupérer le profil sportif
+    const profile = await queryOne<{
+      fitness_level:        string
+      preferred_activities: string[]
+      sessions_per_week:    number
+      session_duration_min: number
+      available_days:       number[]
+      context:              string | null
+    }>(
+      `SELECT fitness_level, preferred_activities, sessions_per_week,
+              session_duration_min, available_days, context
+       FROM sport_profiles WHERE user_id = $1`,
+      [userId]
+    )
+
+    if (!profile) {
+      return reply.status(404).send({ error: 'SPORT_PROFILE_REQUIRED' })
+    }
+
+    try {
+      const result = await requestTrainingPlan(userId, {
+        fitness_level:        profile.fitness_level,
+        preferred_activities: profile.preferred_activities,
+        sessions_per_week:    profile.sessions_per_week,
+        session_duration_min: profile.session_duration_min,
+        available_days:       profile.available_days,
+        context:              profile.context,
+      })
+
+      return reply.send({
+        sessions: result.sessions.map(s => ({
+          dayOfWeek:    s.day_of_week,
+          activityName: s.activity_name,
+          sessionType:  s.session_type,
+          durationMin:  s.duration_min,
+          notes:        s.notes,
+          sortOrder:    s.sort_order,
+        })),
+        rationale:  result.rationale,
+        usedClaude: result.used_claude,
+      })
+    } catch (err) {
+      if (err instanceof AIEngineError) {
+        if (err.status === 504) {
+          return reply.status(504).send({ error: 'AI_TIMEOUT' })
+        }
+        return reply.status(502).send({ error: 'AI_UNAVAILABLE' })
+      }
+      throw err
+    }
   })
 }
