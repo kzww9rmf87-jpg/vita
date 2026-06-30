@@ -512,12 +512,19 @@ export async function analyzeJournalEntry(
 // ── Training Planner (Sprint 12) ──────────────────────────────────────────────
 
 export interface SportProfilePayload {
-  fitness_level:        string
-  preferred_activities: string[]
-  sessions_per_week:    number
-  session_duration_min: number
-  available_days:       number[]
-  context:              string | null
+  fitness_level:         string
+  preferred_activities:  string[]
+  sessions_per_week:     number
+  session_duration_min:  number
+  available_days:        number[]
+  context:               string | null
+  // Sprint 12.2 — préférences découverte
+  motivation?:            string
+  attractive_activities?: string[]
+  rejected_activities?:   string[]
+  preferred_context?:     string[]
+  apprehension_level?:    string
+  realistic_time_min?:    number | null
 }
 
 export interface PlannedSessionAI {
@@ -533,6 +540,45 @@ export interface TrainingWeekPlanResponse {
   sessions:    PlannedSessionAI[]
   rationale:   string
   used_claude: boolean
+}
+
+// ── Sport Discover (Sprint 12.2) ──────────────────────────────────────────────
+
+export interface SportDiscoverPayload {
+  fitness_level:         string
+  motivation?:           string
+  attractive_activities: string[]
+  rejected_activities:   string[]
+  preferred_context:     string[]
+  apprehension_level:    string
+  realistic_time_min?:   number
+  context?:              string
+}
+
+export interface ActivityOptionResponse {
+  name:                string
+  why:                 string
+  constraint_level:    string
+  first_step:          string
+  suggested_frequency: string
+  session_type:        string
+}
+
+export interface SportDiscoverResponse {
+  options:            ActivityOptionResponse[]
+  discovery_question: string
+  used_claude:        boolean
+}
+
+export async function requestSportDiscover(
+  userId: string,
+  payload: SportDiscoverPayload,
+): Promise<SportDiscoverResponse> {
+  return callAIEngine<object, SportDiscoverResponse>(
+    '/training-planner/discover',
+    { user_id: userId, ...payload },
+    TIMEOUT_MS_LONG,
+  )
 }
 
 export async function requestTrainingPlan(

@@ -7,7 +7,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { query, queryOne } from '../db.js'
-import { requestTrainingPlan, AIEngineError } from '../ai-client.js'
+import { requestTrainingPlan, requestSportDiscover, AIEngineError } from '../ai-client.js'
 
 // ── Schémas ───────────────────────────────────────────────────────────────────
 
@@ -21,6 +21,13 @@ const SportProfileSchema = z.object({
   // 0=dimanche … 6=samedi
   available_days:       z.array(z.number().int().min(0).max(6)).max(7).default([1, 3, 5]),
   context:              z.string().max(2000).optional(),
+  // Sprint 12.2 — préférences découverte
+  motivation:            z.enum(['bouger_un_peu', 'reprendre_confiance', 'ameliorer_energie', 'perdre_poids', 'preparer_sport']).optional(),
+  attractive_activities: z.array(z.string().max(100)).max(20).default([]),
+  rejected_activities:   z.array(z.string().max(100)).max(20).default([]),
+  preferred_context:     z.array(z.enum(['seul', 'groupe', 'dehors', 'maison', 'salle'])).max(5).default([]),
+  apprehension_level:    z.enum(['aucune', 'legere', 'moderee', 'elevee']).default('aucune'),
+  realistic_time_min:    z.number().int().min(10).max(120).optional(),
 })
 
 const SportProfilePatchSchema = SportProfileSchema.partial()
@@ -88,11 +95,20 @@ export const sportRoutes: FastifyPluginAsync = async (app) => {
       session_duration_min: number
       available_days: number[]
       context: string | null
+      motivation: string | null
+      attractive_activities: string[]
+      rejected_activities: string[]
+      preferred_context: string[]
+      apprehension_level: string
+      realistic_time_min: number | null
       created_at: string
       updated_at: string
     }>(
       `SELECT id, fitness_level, preferred_activities, sessions_per_week,
-              session_duration_min, available_days, context, created_at, updated_at
+              session_duration_min, available_days, context,
+              motivation, attractive_activities, rejected_activities,
+              preferred_context, apprehension_level, realistic_time_min,
+              created_at, updated_at
        FROM sport_profiles WHERE user_id = $1`,
       [userId]
     )
@@ -100,15 +116,21 @@ export const sportRoutes: FastifyPluginAsync = async (app) => {
     if (!row) return reply.status(404).send({ error: 'NOT_FOUND' })
 
     return reply.send({
-      id:                  row.id,
-      fitnessLevel:        row.fitness_level,
-      preferredActivities: row.preferred_activities,
-      sessionsPerWeek:     row.sessions_per_week,
-      sessionDurationMin:  row.session_duration_min,
-      availableDays:       row.available_days,
-      context:             row.context,
-      createdAt:           row.created_at,
-      updatedAt:           row.updated_at,
+      id:                   row.id,
+      fitnessLevel:         row.fitness_level,
+      preferredActivities:  row.preferred_activities,
+      sessionsPerWeek:      row.sessions_per_week,
+      sessionDurationMin:   row.session_duration_min,
+      availableDays:        row.available_days,
+      context:              row.context,
+      motivation:           row.motivation,
+      attractiveActivities: row.attractive_activities,
+      rejectedActivities:   row.rejected_activities,
+      preferredContext:     row.preferred_context,
+      apprehensionLevel:    row.apprehension_level,
+      realisticTimeMin:     row.realistic_time_min,
+      createdAt:            row.created_at,
+      updatedAt:            row.updated_at,
     })
   })
 
@@ -135,8 +157,10 @@ export const sportRoutes: FastifyPluginAsync = async (app) => {
       const row = await queryOne<{ id: string }>(
         `INSERT INTO sport_profiles
            (user_id, fitness_level, preferred_activities, sessions_per_week,
-            session_duration_min, available_days, context)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)
+            session_duration_min, available_days, context,
+            motivation, attractive_activities, rejected_activities,
+            preferred_context, apprehension_level, realistic_time_min)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
          RETURNING id`,
         [
           userId,
@@ -146,6 +170,12 @@ export const sportRoutes: FastifyPluginAsync = async (app) => {
           full.session_duration_min,
           full.available_days,
           full.context ?? null,
+          full.motivation ?? null,
+          full.attractive_activities,
+          full.rejected_activities,
+          full.preferred_context,
+          full.apprehension_level,
+          full.realistic_time_min ?? null,
         ]
       )
       return reply.status(201).send({ id: row!.id })
@@ -166,6 +196,12 @@ export const sportRoutes: FastifyPluginAsync = async (app) => {
     addField('session_duration_min', body.session_duration_min)
     addField('available_days',       body.available_days)
     addField('context',              body.context)
+    addField('motivation',           body.motivation)
+    addField('attractive_activities', body.attractive_activities)
+    addField('rejected_activities',   body.rejected_activities)
+    addField('preferred_context',     body.preferred_context)
+    addField('apprehension_level',    body.apprehension_level)
+    addField('realistic_time_min',    body.realistic_time_min)
 
     if (fields.length > 0) {
       await query(
@@ -397,15 +433,23 @@ export const sportRoutes: FastifyPluginAsync = async (app) => {
     const userId = (req.user as { sub: string }).sub
 
     const row = await queryOne<{
-      fitness_level:        string
-      preferred_activities: string[]
-      sessions_per_week:    number
-      session_duration_min: number
-      available_days:       number[]
-      context:              string | null
+      fitness_level:         string
+      preferred_activities:  string[]
+      sessions_per_week:     number
+      session_duration_min:  number
+      available_days:        number[]
+      context:               string | null
+      motivation:            string | null
+      attractive_activities: string[]
+      rejected_activities:   string[]
+      preferred_context:     string[]
+      apprehension_level:    string
+      realistic_time_min:    number | null
     }>(
       `SELECT fitness_level, preferred_activities, sessions_per_week,
-              session_duration_min, available_days, context
+              session_duration_min, available_days, context,
+              motivation, attractive_activities, rejected_activities,
+              preferred_context, apprehension_level, realistic_time_min
        FROM sport_profiles WHERE user_id = $1`,
       [userId]
     )
@@ -413,22 +457,34 @@ export const sportRoutes: FastifyPluginAsync = async (app) => {
     // Sans profil : valeurs par défaut identiques à SportProfileSchema
     const hasProfile = row !== null
     const profile = row ?? {
-      fitness_level:        'beginner',
-      preferred_activities: [] as string[],
-      sessions_per_week:    3,
-      session_duration_min: 45,
-      available_days:       [1, 3, 5],
-      context:              null,
+      fitness_level:         'beginner',
+      preferred_activities:  [] as string[],
+      sessions_per_week:     3,
+      session_duration_min:  45,
+      available_days:        [1, 3, 5],
+      context:               null,
+      motivation:            null,
+      attractive_activities: [] as string[],
+      rejected_activities:   [] as string[],
+      preferred_context:     [] as string[],
+      apprehension_level:    'aucune',
+      realistic_time_min:    null,
     }
 
     try {
       const result = await requestTrainingPlan(userId, {
-        fitness_level:        profile.fitness_level,
-        preferred_activities: profile.preferred_activities,
-        sessions_per_week:    profile.sessions_per_week,
-        session_duration_min: profile.session_duration_min,
-        available_days:       profile.available_days,
-        context:              profile.context,
+        fitness_level:         profile.fitness_level,
+        preferred_activities:  profile.preferred_activities,
+        sessions_per_week:     profile.sessions_per_week,
+        session_duration_min:  profile.session_duration_min,
+        available_days:        profile.available_days,
+        context:               profile.context,
+        motivation:            profile.motivation            ?? undefined,
+        attractive_activities: profile.attractive_activities,
+        rejected_activities:   profile.rejected_activities,
+        preferred_context:     profile.preferred_context,
+        apprehension_level:    profile.apprehension_level,
+        realistic_time_min:    profile.realistic_time_min   ?? undefined,
       })
 
       return reply.send({
@@ -444,6 +500,73 @@ export const sportRoutes: FastifyPluginAsync = async (app) => {
         usedClaude: result.used_claude,
         hasProfile,
       })
+    } catch (err) {
+      if (err instanceof AIEngineError) {
+        if (err.status === 504) {
+          return reply.status(504).send({ error: 'AI_TIMEOUT' })
+        }
+        return reply.status(502).send({ error: 'AI_UNAVAILABLE' })
+      }
+      throw err
+    }
+  })
+
+  // POST /sport/training-planner/discover
+  // Propose 3-5 options d'activité adaptées au profil.
+  // Charge le profil existant si présent, complète avec les overrides du body.
+  // Returns: SportDiscoverResult
+  // Auth: JWT requis
+  app.post('/training-planner/discover', async (req, reply) => {
+    const userId = (req.user as { sub: string }).sub
+
+    // Body facultatif — overrides du profil
+    const DiscoverOverrideSchema = z.object({
+      fitness_level:         z.enum(['beginner', 'intermediate', 'advanced', 'elite']).optional(),
+      motivation:            z.enum(['bouger_un_peu', 'reprendre_confiance', 'ameliorer_energie', 'perdre_poids', 'preparer_sport']).optional(),
+      attractive_activities: z.array(z.string().max(100)).max(20).optional(),
+      rejected_activities:   z.array(z.string().max(100)).max(20).optional(),
+      preferred_context:     z.array(z.enum(['seul', 'groupe', 'dehors', 'maison', 'salle'])).max(5).optional(),
+      apprehension_level:    z.enum(['aucune', 'legere', 'moderee', 'elevee']).optional(),
+      realistic_time_min:    z.number().int().min(10).max(120).optional(),
+      context:               z.string().max(2000).optional(),
+    }).optional()
+
+    const parsed = DiscoverOverrideSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() })
+    }
+    const overrides = parsed.data ?? {}
+
+    // Charger le profil existant
+    const row = await queryOne<{
+      fitness_level:         string
+      motivation:            string | null
+      attractive_activities: string[]
+      rejected_activities:   string[]
+      preferred_context:     string[]
+      apprehension_level:    string
+      realistic_time_min:    number | null
+      context:               string | null
+    }>(
+      `SELECT fitness_level, motivation, attractive_activities, rejected_activities,
+              preferred_context, apprehension_level, realistic_time_min, context
+       FROM sport_profiles WHERE user_id = $1`,
+      [userId]
+    )
+
+    try {
+      const result = await requestSportDiscover(userId, {
+        fitness_level:         overrides.fitness_level         ?? row?.fitness_level         ?? 'beginner',
+        motivation:            overrides.motivation            ?? row?.motivation             ?? undefined,
+        attractive_activities: overrides.attractive_activities ?? row?.attractive_activities  ?? [],
+        rejected_activities:   overrides.rejected_activities   ?? row?.rejected_activities   ?? [],
+        preferred_context:     overrides.preferred_context     ?? row?.preferred_context      ?? [],
+        apprehension_level:    overrides.apprehension_level    ?? row?.apprehension_level     ?? 'aucune',
+        realistic_time_min:    overrides.realistic_time_min    ?? row?.realistic_time_min     ?? undefined,
+        context:               overrides.context               ?? row?.context                ?? undefined,
+      })
+
+      return reply.send(result)
     } catch (err) {
       if (err instanceof AIEngineError) {
         if (err.status === 504) {

@@ -30,6 +30,45 @@ class SportProfileInput(BaseModel):
     session_duration_min: int          = Field(default=45, ge=10, le=300)
     available_days:       list[int]    = Field(default_factory=lambda: [1, 3, 5])
     context:              Optional[str] = None
+    # Sprint 12.2 — préférences de découverte
+    motivation:            Optional[str] = None   # bouger_un_peu | reprendre_confiance | ...
+    attractive_activities: list[str]     = Field(default_factory=list)
+    rejected_activities:   list[str]     = Field(default_factory=list)
+    preferred_context:     list[str]     = Field(default_factory=list)  # seul | groupe | dehors | maison | salle
+    apprehension_level:    str           = "aucune"  # aucune | legere | moderee | elevee
+    realistic_time_min:    Optional[int] = None
+
+
+# ── Discover ───────────────────────────────────────────────────────────────────
+
+class SportDiscoverInput(BaseModel):
+    """Input de la découverte de préférences sportives."""
+    user_id:               str
+    fitness_level:         str          = "beginner"
+    motivation:            Optional[str] = None
+    attractive_activities: list[str]    = Field(default_factory=list)
+    rejected_activities:   list[str]    = Field(default_factory=list)
+    preferred_context:     list[str]    = Field(default_factory=list)
+    apprehension_level:    str          = "aucune"
+    realistic_time_min:    Optional[int] = None
+    context:               Optional[str] = None
+
+
+class ActivityOption(BaseModel):
+    """Une option d'activité proposée par VITA lors de la découverte."""
+    name:                str
+    why:                 str   # pourquoi ça pourrait convenir — bienveillant, jamais de jugement
+    constraint_level:    str   # tres_faible | faible | modere | eleve
+    first_step:          str   # première étape très simple et concrète
+    suggested_frequency: str   # ex: "2 fois par semaine, 20 min"
+    session_type:        str   # strength | cardio | mobility | walk | combat
+
+
+class SportDiscoverResult(BaseModel):
+    """Résultat de la découverte — 3 à 5 options + question finale."""
+    options:            list[ActivityOption]
+    discovery_question: str = "Laquelle te semble la plus réaliste pour commencer ?"
+    used_claude:        bool = False
 
 
 class TrainingPlannerInput(BaseModel):

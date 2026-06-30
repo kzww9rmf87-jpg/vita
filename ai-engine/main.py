@@ -29,7 +29,10 @@ from meal_planner import (
     MealPlannerAgent, SmartMealPlanInput, NutritionProfile, RecipeWithMacros,
     calculate_targets, prefill_recipe,
 )
-from training_planner import TrainingPlannerAgent, TrainingPlannerInput
+from training_planner import (
+    TrainingPlannerAgent, TrainingPlannerInput,
+    SportDiscovererAgent, SportDiscoverInput,
+)
 
 settings = get_settings()
 
@@ -372,6 +375,23 @@ async def training_planner_plan(
     try:
         agent  = TrainingPlannerAgent()
         result = await agent.plan(req)
+        return result.model_dump(mode="json")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/training-planner/discover")
+async def training_planner_discover(
+    req: SportDiscoverInput,
+    _: bool = Depends(verify_service_token),
+):
+    """
+    Propose 3-5 options d'activité adaptées au profil et aux préférences.
+    N'impose pas un plan — aide à découvrir ce qui semble réaliste et attrayant.
+    """
+    try:
+        agent  = SportDiscovererAgent()
+        result = await agent.discover(req)
         return result.model_dump(mode="json")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

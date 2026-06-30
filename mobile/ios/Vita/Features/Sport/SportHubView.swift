@@ -19,6 +19,17 @@ struct SportHubView: View {
                     }
                     .buttonStyle(.plain)
 
+                    // Trouver mon activité — découverte de préférences
+                    NavigationLink(destination: SportDiscoverView()) {
+                        HubCard(
+                            icon: "sparkles",
+                            title: "Trouver mon activité",
+                            subtitle: "Découvrir ce qui me convient",
+                            color: .teal
+                        )
+                    }
+                    .buttonStyle(.plain)
+
                     // Mes activités
                     NavigationLink(destination: ActivityView()) {
                         HubCard(

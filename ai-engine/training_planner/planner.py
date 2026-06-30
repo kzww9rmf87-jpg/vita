@@ -56,6 +56,9 @@ def plan_locally(inp: TrainingPlannerInput) -> list[PlannedSession]:
     for sort_idx, (day, activity) in enumerate(zip(days[:n], activities)):
         stype    = _infer_type(activity)
         duration = _adjusted_duration(stype, base_dur, factor, inp.pain_areas)
+        # Le temps réaliste est un plafond absolu, appliqué après le facteur niveau.
+        if profile.realistic_time_min:
+            duration = min(duration, profile.realistic_time_min)
         notes    = _build_notes(stype, profile.fitness_level, inp.pain_areas, inp.equipment)
         sessions.append(PlannedSession(
             day_of_week   = day,
@@ -91,14 +94,34 @@ def build_rationale(profile: SportProfileInput, sessions: list[PlannedSession]) 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _resolve_activities(profile: SportProfileInput, n: int) -> list[str]:
-    """Sélectionne les activités à placer, en cyclant si nécessaire."""
-    if not profile.preferred_activities:
+    """
+    Sélectionne les activités à placer, en cyclant si nécessaire.
+    Sprint 12.2 : priorise attractive_activities, filtre rejected_activities.
+    """
+    rejected_lower = {r.lower() for r in profile.rejected_activities}
+
+    def _not_rejected(a: str) -> bool:
+        return a.lower() not in rejected_lower
+
+    # Pool de priorité : attractive > preferred
+    priority_pool = [a for a in profile.attractive_activities if _not_rejected(a)]
+    fallback_pool = [a for a in profile.preferred_activities if _not_rejected(a)]
+
+    # Dédoublonner en gardant l'ordre
+    seen: set[str] = set()
+    ordered_pool: list[str] = []
+    for a in priority_pool + fallback_pool:
+        key = a.lower()
+        if key not in seen:
+            seen.add(key)
+            ordered_pool.append(a)
+
+    if not ordered_pool:
         return ["Activité libre"] * n
 
     result: list[str] = []
-    pool = profile.preferred_activities
     for i in range(n):
-        result.append(pool[i % len(pool)])
+        result.append(ordered_pool[i % len(ordered_pool)])
 
     # Si plusieurs séances, tous du même type strength → insérer mobilité en fin
     if n >= 3 and len({_infer_type(a) for a in result}) == 1 and _infer_type(result[0]) == SessionType.strength:

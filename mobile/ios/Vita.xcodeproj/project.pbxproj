@@ -19,6 +19,7 @@
 		DD2E996B14E14FF3A0E2C7BF /* SportHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B9C81760AB4DB196358E7F /* SportHubView.swift */; };
 		8F718260E87846F18A562F89 /* SportProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E808FEBC2844AB1AD3CC7DD /* SportProfileViewModel.swift */; };
 		F1F86A2FE7D841FE9EFA40AD /* SportProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5AAFB6087F1480CBF2A5608 /* SportProfileView.swift */; };
+		7F5D592EFA65425084EB455E /* SportDiscoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EA8F8182EFA48E09AF8CB30 /* SportDiscoverView.swift */; };
 		E7291F91E0C1442B916C678A /* TrainingPlanViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C170F9B2CB04F67AC40501A /* TrainingPlanViewModel.swift */; };
 		DFAC93B93CE84EA993F71BFB /* TrainingPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21CB9594AB1F4D569157949B /* TrainingPlanView.swift */; };
 		B2C3D4E5F6A7B8C9D0E1F2A3 /* TrainingPlannerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* TrainingPlannerViewModel.swift */; };
@@ -78,6 +79,7 @@
 		16B9C81760AB4DB196358E7F /* SportHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SportHubView.swift; sourceTree = "<group>"; };
 		0E808FEBC2844AB1AD3CC7DD /* SportProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SportProfileViewModel.swift; sourceTree = "<group>"; };
 		E5AAFB6087F1480CBF2A5608 /* SportProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SportProfileView.swift; sourceTree = "<group>"; };
+		0EA8F8182EFA48E09AF8CB30 /* SportDiscoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SportDiscoverView.swift; sourceTree = "<group>"; };
 		2C170F9B2CB04F67AC40501A /* TrainingPlanViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPlanViewModel.swift; sourceTree = "<group>"; };
 		21CB9594AB1F4D569157949B /* TrainingPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPlanView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* TrainingPlannerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPlannerViewModel.swift; sourceTree = "<group>"; };
@@ -341,6 +343,7 @@
 				16B9C81760AB4DB196358E7F /* SportHubView.swift */,
 				0E808FEBC2844AB1AD3CC7DD /* SportProfileViewModel.swift */,
 				E5AAFB6087F1480CBF2A5608 /* SportProfileView.swift */,
+				0EA8F8182EFA48E09AF8CB30 /* SportDiscoverView.swift */,
 				2C170F9B2CB04F67AC40501A /* TrainingPlanViewModel.swift */,
 				21CB9594AB1F4D569157949B /* TrainingPlanView.swift */,
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* TrainingPlannerViewModel.swift */,
@@ -492,6 +495,7 @@
 				DD2E996B14E14FF3A0E2C7BF /* SportHubView.swift in Sources */,
 				8F718260E87846F18A562F89 /* SportProfileViewModel.swift in Sources */,
 				F1F86A2FE7D841FE9EFA40AD /* SportProfileView.swift in Sources */,
+				7F5D592EFA65425084EB455E /* SportDiscoverView.swift in Sources */,
 				E7291F91E0C1442B916C678A /* TrainingPlanViewModel.swift in Sources */,
 				DFAC93B93CE84EA993F71BFB /* TrainingPlanView.swift in Sources */,
 				B2C3D4E5F6A7B8C9D0E1F2A3 /* TrainingPlannerViewModel.swift in Sources */,

@@ -14,8 +14,13 @@ struct SportProfileView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: VitaSpacing.xl) {
                         levelSection
+                        motivationSection
                         activitiesSection
+                        rejectedActivitiesSection
+                        preferredContextSection
+                        apprehensionSection
                         scheduleSection
+                        realisticTimeSection
                         daysSection
                         contextSection
                         saveButton
@@ -63,6 +68,37 @@ struct SportProfileView: View {
         }
     }
 
+    private var motivationSection: some View {
+        VStack(alignment: .leading, spacing: VitaSpacing.sm) {
+            SectionHeader("Objectif de départ")
+            Text("Ce qui te motive à bouger, sans jugement.")
+                .font(VitaFont.caption())
+                .foregroundStyle(VitaColor.textSecondary)
+            ForEach(vm.motivationOptions, id: \.id) { opt in
+                let selected = vm.formMotivation == opt.id
+                Button {
+                    vm.formMotivation = selected ? nil : opt.id
+                } label: {
+                    HStack {
+                        Text(opt.label)
+                            .font(VitaFont.body())
+                            .foregroundStyle(selected ? Color.white : VitaColor.textPrimary)
+                        Spacer()
+                        if selected {
+                            Image(systemName: "checkmark")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .padding(VitaSpacing.md)
+                    .background(selected ? VitaColor.accent : VitaColor.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: VitaRadius.sm))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
     private var activitiesSection: some View {
         VStack(alignment: .leading, spacing: VitaSpacing.sm) {
             SectionHeader("Activités préférées")
@@ -73,6 +109,72 @@ struct SportProfileView: View {
                         vm.toggleActivity(name)
                     }
                     .font(VitaFont.body())
+                    .foregroundStyle(selected ? Color.white : VitaColor.textSecondary)
+                    .padding(.vertical, VitaSpacing.sm)
+                    .frame(maxWidth: .infinity)
+                    .background(selected ? VitaColor.accent : VitaColor.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: VitaRadius.sm))
+                }
+            }
+        }
+    }
+
+    private var rejectedActivitiesSection: some View {
+        VStack(alignment: .leading, spacing: VitaSpacing.sm) {
+            SectionHeader("Activités à éviter")
+            Text("VITA ne les proposera jamais.")
+                .font(VitaFont.caption())
+                .foregroundStyle(VitaColor.textSecondary)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 110))], spacing: VitaSpacing.sm) {
+                ForEach(vm.suggestedActivities, id: \.self) { name in
+                    let selected = vm.formRejectedActivities.contains(name)
+                    Button(name) {
+                        vm.toggleRejectedActivity(name)
+                    }
+                    .font(VitaFont.body())
+                    .foregroundStyle(selected ? Color.white : VitaColor.textSecondary)
+                    .padding(.vertical, VitaSpacing.sm)
+                    .frame(maxWidth: .infinity)
+                    .background(selected ? Color.red.opacity(0.7) : VitaColor.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: VitaRadius.sm))
+                }
+            }
+        }
+    }
+
+    private var preferredContextSection: some View {
+        VStack(alignment: .leading, spacing: VitaSpacing.sm) {
+            SectionHeader("Contexte préféré")
+            Text("Plusieurs choix possibles.")
+                .font(VitaFont.caption())
+                .foregroundStyle(VitaColor.textSecondary)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 110))], spacing: VitaSpacing.sm) {
+                ForEach(vm.contextOptions, id: \.id) { opt in
+                    let selected = vm.formPreferredContext.contains(opt.id)
+                    Button(opt.label) {
+                        vm.togglePreferredContext(opt.id)
+                    }
+                    .font(VitaFont.body())
+                    .foregroundStyle(selected ? Color.white : VitaColor.textSecondary)
+                    .padding(.vertical, VitaSpacing.sm)
+                    .frame(maxWidth: .infinity)
+                    .background(selected ? VitaColor.accent : VitaColor.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: VitaRadius.sm))
+                }
+            }
+        }
+    }
+
+    private var apprehensionSection: some View {
+        VStack(alignment: .leading, spacing: VitaSpacing.sm) {
+            SectionHeader("Appréhension face à l'activité physique")
+            HStack(spacing: VitaSpacing.sm) {
+                ForEach(vm.apprehensionOptions, id: \.id) { opt in
+                    let selected = vm.formApprehension == opt.id
+                    Button(opt.label) {
+                        vm.formApprehension = opt.id
+                    }
+                    .font(VitaFont.caption())
                     .foregroundStyle(selected ? Color.white : VitaColor.textSecondary)
                     .padding(.vertical, VitaSpacing.sm)
                     .frame(maxWidth: .infinity)
@@ -112,6 +214,34 @@ struct SportProfileView: View {
                 set: { vm.formDuration = Int($0) }
             ), in: 10...180, step: 5)
             .tint(VitaColor.accent)
+        }
+    }
+
+    private var realisticTimeSection: some View {
+        VStack(alignment: .leading, spacing: VitaSpacing.sm) {
+            HStack {
+                SectionHeader("Temps réaliste par séance")
+                Spacer()
+                if let t = vm.formRealisticTime {
+                    Text("\(t) min")
+                        .font(.system(size: 16, weight: .light, design: .rounded))
+                        .foregroundStyle(VitaColor.textSecondary)
+                } else {
+                    Text("Non défini")
+                        .font(VitaFont.caption())
+                        .foregroundStyle(VitaColor.textSecondary)
+                }
+            }
+            Slider(value: Binding(
+                get: { Double(vm.formRealisticTime ?? 30) },
+                set: { vm.formRealisticTime = Int($0) }
+            ), in: 10...120, step: 5)
+            .tint(VitaColor.accent)
+            Button("Ne pas préciser") {
+                vm.formRealisticTime = nil
+            }
+            .font(VitaFont.caption())
+            .foregroundStyle(VitaColor.textSecondary)
         }
     }
 
