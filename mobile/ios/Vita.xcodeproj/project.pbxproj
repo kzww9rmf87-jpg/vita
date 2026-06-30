@@ -17,6 +17,10 @@
 		11BDB80A22D747ABBF3AFB6E /* SleepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2509DCF6523467F96E70557 /* SleepView.swift */; };
 		E112E2B5424443078D957E5B /* SleepHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA0562E96EE1436281E0D263 /* SleepHubView.swift */; };
 		DD2E996B14E14FF3A0E2C7BF /* SportHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B9C81760AB4DB196358E7F /* SportHubView.swift */; };
+		8F718260E87846F18A562F89 /* SportProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E808FEBC2844AB1AD3CC7DD /* SportProfileViewModel.swift */; };
+		F1F86A2FE7D841FE9EFA40AD /* SportProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5AAFB6087F1480CBF2A5608 /* SportProfileView.swift */; };
+		E7291F91E0C1442B916C678A /* TrainingPlanViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C170F9B2CB04F67AC40501A /* TrainingPlanViewModel.swift */; };
+		DFAC93B93CE84EA993F71BFB /* TrainingPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21CB9594AB1F4D569157949B /* TrainingPlanView.swift */; };
 		E5CA17A90C0445D6AAF31CED /* ActivityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 604FCD0BA2BB42979994E23E /* ActivityViewModel.swift */; };
 		BDF4900EE6B446D28194E883 /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1AE0515AD224F5DA559553C /* ActivityView.swift */; };
 		546928336F57440CB02909D4 /* NutritionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2183B495694AF7A8638E42 /* NutritionViewModel.swift */; };
@@ -67,6 +71,10 @@
 		B2509DCF6523467F96E70557 /* SleepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepView.swift; sourceTree = "<group>"; };
 		DA0562E96EE1436281E0D263 /* SleepHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepHubView.swift; sourceTree = "<group>"; };
 		16B9C81760AB4DB196358E7F /* SportHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SportHubView.swift; sourceTree = "<group>"; };
+		0E808FEBC2844AB1AD3CC7DD /* SportProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SportProfileViewModel.swift; sourceTree = "<group>"; };
+		E5AAFB6087F1480CBF2A5608 /* SportProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SportProfileView.swift; sourceTree = "<group>"; };
+		2C170F9B2CB04F67AC40501A /* TrainingPlanViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPlanViewModel.swift; sourceTree = "<group>"; };
+		21CB9594AB1F4D569157949B /* TrainingPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPlanView.swift; sourceTree = "<group>"; };
 		604FCD0BA2BB42979994E23E /* ActivityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityViewModel.swift; sourceTree = "<group>"; };
 		D1AE0515AD224F5DA559553C /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		FC2183B495694AF7A8638E42 /* NutritionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionViewModel.swift; sourceTree = "<group>"; };
@@ -321,6 +329,10 @@
 			isa = PBXGroup;
 			children = (
 				16B9C81760AB4DB196358E7F /* SportHubView.swift */,
+				0E808FEBC2844AB1AD3CC7DD /* SportProfileViewModel.swift */,
+				E5AAFB6087F1480CBF2A5608 /* SportProfileView.swift */,
+				2C170F9B2CB04F67AC40501A /* TrainingPlanViewModel.swift */,
+				21CB9594AB1F4D569157949B /* TrainingPlanView.swift */,
 			);
 			path = Sport;
 			sourceTree = "<group>";
@@ -463,6 +475,10 @@
 				11BDB80A22D747ABBF3AFB6E /* SleepView.swift in Sources */,
 				E112E2B5424443078D957E5B /* SleepHubView.swift in Sources */,
 				DD2E996B14E14FF3A0E2C7BF /* SportHubView.swift in Sources */,
+				8F718260E87846F18A562F89 /* SportProfileViewModel.swift in Sources */,
+				F1F86A2FE7D841FE9EFA40AD /* SportProfileView.swift in Sources */,
+				E7291F91E0C1442B916C678A /* TrainingPlanViewModel.swift in Sources */,
+				DFAC93B93CE84EA993F71BFB /* TrainingPlanView.swift in Sources */,
 				E5CA17A90C0445D6AAF31CED /* ActivityViewModel.swift in Sources */,
 				BDF4900EE6B446D28194E883 /* ActivityView.swift in Sources */,
 				546928336F57440CB02909D4 /* NutritionViewModel.swift in Sources */,

@@ -9,7 +9,7 @@ struct SportHubView: View {
                 VStack(spacing: VitaSpacing.lg) {
 
                     // Plan de la semaine
-                    NavigationLink(destination: SportWeekPlanView()) {
+                    NavigationLink(destination: TrainingPlanView()) {
                         HubCard(
                             icon: "calendar",
                             title: "Plan de la semaine",
@@ -42,8 +42,8 @@ struct SportHubView: View {
                     }
                     .buttonStyle(.plain)
 
-                    // Mon objectif
-                    NavigationLink(destination: SportObjectiveView()) {
+                    // Mon objectif — profil sportif
+                    NavigationLink(destination: SportProfileView()) {
                         HubCard(
                             icon: "target",
                             title: "Mon objectif",
@@ -137,30 +137,6 @@ private struct HubCard: View {
 
 // MARK: — Sous-vues placeholder
 
-struct SportWeekPlanView: View {
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: VitaSpacing.lg) {
-                Image(systemName: "calendar.badge.clock")
-                    .font(.system(size: 48))
-                    .foregroundStyle(VitaColor.accent)
-                Text("Plan de la semaine")
-                    .font(VitaFont.headline(20))
-                    .foregroundStyle(VitaColor.textPrimary)
-                Text("La planification intelligente des séances arrive bientôt.")
-                    .font(VitaFont.body())
-                    .foregroundStyle(VitaColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, VitaSpacing.xl)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(VitaColor.background)
-            .navigationTitle("Plan de la semaine")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-    }
-}
-
 struct SportSessionsView: View {
     var body: some View {
         NavigationStack {
@@ -180,30 +156,6 @@ struct SportSessionsView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(VitaColor.background)
             .navigationTitle("Mes séances")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-    }
-}
-
-struct SportObjectiveView: View {
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: VitaSpacing.lg) {
-                Image(systemName: "target")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.indigo)
-                Text("Mon objectif")
-                    .font(VitaFont.headline(20))
-                    .foregroundStyle(VitaColor.textPrimary)
-                Text("Définissez vos objectifs sportifs pour que VITA adapte vos séances.")
-                    .font(VitaFont.body())
-                    .foregroundStyle(VitaColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, VitaSpacing.xl)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(VitaColor.background)
-            .navigationTitle("Mon objectif")
             .navigationBarTitleDisplayMode(.inline)
         }
     }

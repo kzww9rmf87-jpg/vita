@@ -75,6 +75,14 @@ actor APIClient {
         return try await perform(request)
     }
 
+    func put<Body: Encodable, Response: Decodable>(_ path: String, body: Body) async throws -> Response {
+        let url = buildURL(path)
+        var request = try buildRequest(url: url, method: "PUT")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder.vita.encode(body)
+        return try await perform(request)
+    }
+
     func delete(_ path: String) async throws {
         let url = buildURL(path)
         let request = try buildRequest(url: url, method: "DELETE")

@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, Literal
 from datetime import date, datetime
+from enum import Enum
 
 
 class AgentSignal(BaseModel):
@@ -35,6 +36,47 @@ class UserContext(BaseModel):
     profile: Optional[dict] = None
     snapshot: Optional[dict] = None
     conversation_history: list[dict] = Field(default_factory=list)
+
+
+class FitnessLevel(str, Enum):
+    beginner = "beginner"
+    intermediate = "intermediate"
+    advanced = "advanced"
+    elite = "elite"
+
+
+class SportProfile(BaseModel):
+    id: str
+    user_id: str
+    fitness_level: FitnessLevel
+    preferred_activities: list[str]
+    sessions_per_week: int = Field(ge=1, le=14)
+    session_duration_min: int = Field(ge=10, le=300)
+    available_days: list[int]  # 0=dim … 6=sam
+    context: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class TrainingPlanSession(BaseModel):
+    id: str
+    plan_id: str
+    day_of_week: int = Field(ge=0, le=6)
+    activity_name: str
+    duration_min: int = Field(ge=5, le=300)
+    notes: Optional[str] = None
+    sort_order: int = 0
+
+
+class TrainingPlan(BaseModel):
+    id: str
+    user_id: str
+    name: str
+    description: Optional[str] = None
+    is_active: bool
+    sessions: list[TrainingPlanSession] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: datetime
 
 
 class OrchestratorState(BaseModel):

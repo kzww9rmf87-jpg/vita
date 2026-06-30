@@ -19,6 +19,7 @@ import { firstEncounterRoutes } from './routes/first-encounter.js'
 import { mealPlanRoutes } from './routes/meal-plan.js'
 import { pantryRoutes } from './routes/pantry.js'
 import { nutritionProfileRoutes } from './routes/nutrition-profile.js'
+import { sportRoutes } from './routes/sport.js'
 import { debugRoutes } from './routes/debug.js'
 
 async function main() {
@@ -56,6 +57,7 @@ async function main() {
   await app.register(mealPlanRoutes, { prefix: '/meal-plans' })
   await app.register(pantryRoutes, { prefix: '/pantry' })
   await app.register(nutritionProfileRoutes, { prefix: '/nutrition/profile' })
+  await app.register(sportRoutes, { prefix: '/sport' })
 
   // Routes de débogage — absentes des déploiements production
   if (process.env.NODE_ENV !== 'production') {
