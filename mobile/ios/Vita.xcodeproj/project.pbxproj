@@ -15,6 +15,8 @@
 		3CD5BF5DEF2A011E9A310D94 /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE42AF6C9B00B3B8D316451B /* HealthKitManager.swift */; };
 		08977BA5EBF6407C8D32A0F9 /* SleepViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2812E02DFBC240208D0BD8B2 /* SleepViewModel.swift */; };
 		11BDB80A22D747ABBF3AFB6E /* SleepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2509DCF6523467F96E70557 /* SleepView.swift */; };
+		E112E2B5424443078D957E5B /* SleepHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA0562E96EE1436281E0D263 /* SleepHubView.swift */; };
+		DD2E996B14E14FF3A0E2C7BF /* SportHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B9C81760AB4DB196358E7F /* SportHubView.swift */; };
 		E5CA17A90C0445D6AAF31CED /* ActivityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 604FCD0BA2BB42979994E23E /* ActivityViewModel.swift */; };
 		BDF4900EE6B446D28194E883 /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1AE0515AD224F5DA559553C /* ActivityView.swift */; };
 		546928336F57440CB02909D4 /* NutritionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2183B495694AF7A8638E42 /* NutritionViewModel.swift */; };
@@ -63,6 +65,8 @@
 		07929214826BD6A463905640 /* LifeStoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeStoryView.swift; sourceTree = "<group>"; };
 		2812E02DFBC240208D0BD8B2 /* SleepViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepViewModel.swift; sourceTree = "<group>"; };
 		B2509DCF6523467F96E70557 /* SleepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepView.swift; sourceTree = "<group>"; };
+		DA0562E96EE1436281E0D263 /* SleepHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepHubView.swift; sourceTree = "<group>"; };
+		16B9C81760AB4DB196358E7F /* SportHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SportHubView.swift; sourceTree = "<group>"; };
 		604FCD0BA2BB42979994E23E /* ActivityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityViewModel.swift; sourceTree = "<group>"; };
 		D1AE0515AD224F5DA559553C /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		FC2183B495694AF7A8638E42 /* NutritionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionViewModel.swift; sourceTree = "<group>"; };
@@ -257,6 +261,7 @@
 			isa = PBXGroup;
 			children = (
 				0C877AC030E141FFABA48358 /* Sleep */,
+				D6E0E8EC77784F359C678876 /* Sport */,
 				E90B5032D6724874B095BBE9 /* Activity */,
 				4B78D45E81114D8AB54CFA22 /* Nutrition */,
 				55DA594108AC4AC6ACEE27FB /* Energy */,
@@ -312,11 +317,20 @@
 			path = Timeline;
 			sourceTree = "<group>";
 		};
+		D6E0E8EC77784F359C678876 /* Sport */ = {
+			isa = PBXGroup;
+			children = (
+				16B9C81760AB4DB196358E7F /* SportHubView.swift */,
+			);
+			path = Sport;
+			sourceTree = "<group>";
+		};
 		0C877AC030E141FFABA48358 /* Sleep */ = {
 			isa = PBXGroup;
 			children = (
 				2812E02DFBC240208D0BD8B2 /* SleepViewModel.swift */,
 				B2509DCF6523467F96E70557 /* SleepView.swift */,
+				DA0562E96EE1436281E0D263 /* SleepHubView.swift */,
 			);
 			path = Sleep;
 			sourceTree = "<group>";
@@ -447,6 +461,8 @@
 				83DD88C537B1E551C10C16B8 /* ExplainabilitySheet.swift in Sources */,
 				08977BA5EBF6407C8D32A0F9 /* SleepViewModel.swift in Sources */,
 				11BDB80A22D747ABBF3AFB6E /* SleepView.swift in Sources */,
+				E112E2B5424443078D957E5B /* SleepHubView.swift in Sources */,
+				DD2E996B14E14FF3A0E2C7BF /* SportHubView.swift in Sources */,
 				E5CA17A90C0445D6AAF31CED /* ActivityViewModel.swift in Sources */,
 				BDF4900EE6B446D28194E883 /* ActivityView.swift in Sources */,
 				546928336F57440CB02909D4 /* NutritionViewModel.swift in Sources */,

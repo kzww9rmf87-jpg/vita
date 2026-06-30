@@ -47,8 +47,6 @@ struct HomeView: View {
                         #if DEBUG
                         MemoryInspectorEntryCard()
                         #endif
-
-                        QuickLogBar()
                     }
                     .padding(.bottom, VitaSpacing.xxl)
                 }
@@ -538,51 +536,4 @@ private struct FirstEncounterCard: View {
     }
 }
 
-// MARK: — Log rapide
-
-private struct QuickLogBar: View {
-    @State private var activeSheet: QuickLogSheet?
-
-    enum QuickLogSheet: Identifiable {
-        case sleep, activity, nutrition
-        var id: Self { self }
-    }
-
-    var body: some View {
-        HStack(spacing: VitaSpacing.sm) {
-            QuickLogButton(icon: "moon.fill", label: "Sommeil") { activeSheet = .sleep }
-            QuickLogButton(icon: "dumbbell.fill", label: "Sport")  { activeSheet = .activity }
-            QuickLogButton(icon: "fork.knife", label: "Repas")     { activeSheet = .nutrition }
-        }
-        .padding(.horizontal, VitaSpacing.lg)
-        .sheet(item: $activeSheet) { sheet in
-            switch sheet {
-            case .sleep:     SleepQuickLogSheet(vm: SleepViewModel())
-            case .activity:  ActivityQuickLogSheet(vm: ActivityViewModel())
-            case .nutrition: MealQuickLogSheet(vm: NutritionViewModel())
-            }
-        }
-    }
-}
-
-private struct QuickLogButton: View {
-    let icon: String
-    let label: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: VitaSpacing.xs) {
-                Image(systemName: icon)
-                    .font(.system(size: 18))
-                Text(label)
-                    .font(VitaFont.caption(12))
-            }
-            .foregroundColor(VitaColor.textSecondary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, VitaSpacing.md)
-            .vitaCard()
-        }
-    }
-}
 

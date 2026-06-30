@@ -52,14 +52,19 @@ struct MainTabView: View {
                     Label("Repas", systemImage: "fork.knife")
                 }
 
+            SportHubView()
+                .tabItem {
+                    Label("Sport", systemImage: "figure.run")
+                }
+
+            SleepHubView()
+                .tabItem {
+                    Label("Sommeil", systemImage: "moon.fill")
+                }
+
             TimelineView()
                 .tabItem {
                     Label("Agenda", systemImage: "clock.fill")
-                }
-
-            ProfileView()
-                .tabItem {
-                    Label("Profil", systemImage: "person.fill")
                 }
         }
         .tint(VitaColor.accent)
