@@ -333,6 +333,22 @@ describe('DELETE /meal-plans/:id/items/:itemId', () => {
     const res = await app.inject({ method: 'DELETE', url: '/meal-plans/p1/items/nope' })
     expect(res.statusCode).toBe(404)
   })
+
+  // Régression iOS — DELETE sans Content-Type (FST_ERR_CTP_EMPTY_JSON_BODY)
+  // Cause : APIClient.swift posait Content-Type: application/json sur toutes les requêtes
+  // y compris DELETE sans body → Fastify rejetait avec 400 sur le serveur réel.
+  // Fix : Content-Type n'est posé que si un body est présent (post/patch uniquement).
+  // Note : FST_ERR_CTP_EMPTY_JSON_BODY ne se reproduit pas via app.inject() (pas de vrai TCP),
+  // ce test valide que le chemin sans Content-Type retourne bien 204.
+  it('régression iOS — DELETE sans Content-Type retourne 204', async () => {
+    ;(queryOne as any).mockResolvedValue({ id: 'item-1' })
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/meal-plans/p1/items/item-1',
+    })
+    expect(res.statusCode).toBe(204)
+  })
 })
 
 // ── POST /meal-plans/:id/distribute ──────────────────────────────────────────

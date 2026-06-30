@@ -62,6 +62,7 @@ actor APIClient {
             print("[APIClient] POST \(path) body: \(json)")
         }
         #endif
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = encoded
         return try await perform(request)
     }
@@ -69,6 +70,7 @@ actor APIClient {
     func patch<Body: Encodable, Response: Decodable>(_ path: String, body: Body) async throws -> Response {
         let url = buildURL(path)
         var request = try buildRequest(url: url, method: "PATCH")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder.vita.encode(body)
         return try await perform(request)
     }
@@ -105,7 +107,6 @@ actor APIClient {
     private func buildRequest(url: URL, method: String) throws -> URLRequest {
         var request = URLRequest(url: url, timeoutInterval: 30)
         request.httpMethod = method
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
         if let token = accessToken {
