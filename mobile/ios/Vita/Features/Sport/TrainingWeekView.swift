@@ -57,54 +57,65 @@ struct TrainingWeekView: View {
 
     private var vitaSuggestSection: some View {
         VStack(alignment: .leading, spacing: VitaSpacing.sm) {
-            Text("Suggestion VITA")
-                .font(VitaFont.headline())
-                .foregroundStyle(VitaColor.textPrimary)
 
-            // Message doux si aucun profil sportif renseigné
-            if !profileVM.isLoading && profileVM.profile == nil {
-                HStack(spacing: VitaSpacing.sm) {
-                    Image(systemName: "info.circle")
+            // Titre de la carte
+            HStack(spacing: VitaSpacing.sm) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: VitaRadius.sm)
+                        .fill(VitaColor.accent.opacity(0.12))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: "wand.and.sparkles")
+                        .font(.system(size: 18))
                         .foregroundStyle(VitaColor.accent)
-                    Text("VITA peut te proposer une base. Pour un plan plus adapté, complète ton profil sportif.")
-                        .font(VitaFont.caption())
-                        .foregroundStyle(VitaColor.textSecondary)
                 }
-                .padding(VitaSpacing.sm)
-                .background(VitaColor.accent.opacity(0.06))
-                .clipShape(RoundedRectangle(cornerRadius: VitaRadius.sm))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("VITA peut organiser ta semaine sportive")
+                        .font(VitaFont.headline(15))
+                        .foregroundStyle(VitaColor.textPrimary)
+                    // Message doux si aucun profil renseigné
+                    if !profileVM.isLoading && profileVM.profile == nil {
+                        Text("Suggestion basée sur des valeurs par défaut. Complète ton profil pour affiner.")
+                            .font(VitaFont.caption())
+                            .foregroundStyle(VitaColor.textSecondary)
+                    } else {
+                        Text("Un plan adapté à tes préférences, prêt en quelques secondes.")
+                            .font(VitaFont.caption())
+                            .foregroundStyle(VitaColor.textSecondary)
+                    }
+                }
             }
 
+            // Bouton principal — toujours visible
             Button {
                 Task { await plannerVM.suggest() }
             } label: {
-                HStack {
+                HStack(spacing: VitaSpacing.sm) {
                     if plannerVM.isSuggesting {
                         ProgressView()
-                            .tint(VitaColor.accent)
+                            .tint(.white)
+                            .scaleEffect(0.85)
                         Text("VITA organise ta semaine…")
                             .font(VitaFont.body())
-                            .foregroundStyle(VitaColor.textSecondary)
+                            .fontWeight(.semibold)
                     } else {
-                        Image(systemName: "wand.and.sparkles")
-                            .foregroundStyle(VitaColor.accent)
-                        Text("Laisser VITA suggérer une semaine")
+                        Text("Laisser VITA suggérer")
                             .font(VitaFont.body())
-                            .foregroundStyle(VitaColor.textPrimary)
+                            .fontWeight(.semibold)
                     }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(VitaColor.textSecondary)
                 }
-                .padding(VitaSpacing.md)
-                .background(VitaColor.surface)
-                .clipShape(RoundedRectangle(cornerRadius: VitaRadius.md))
-                .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, VitaSpacing.sm)
+                .background(plannerVM.isSuggesting ? VitaColor.accent.opacity(0.6) : VitaColor.accent)
+                .clipShape(RoundedRectangle(cornerRadius: VitaRadius.sm))
             }
             .buttonStyle(.plain)
             .disabled(plannerVM.isSuggesting)
         }
+        .padding(VitaSpacing.md)
+        .background(VitaColor.surface)
+        .clipShape(RoundedRectangle(cornerRadius: VitaRadius.md))
+        .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
     }
 
     @ViewBuilder
