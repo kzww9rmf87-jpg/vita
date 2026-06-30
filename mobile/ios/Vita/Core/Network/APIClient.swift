@@ -105,9 +105,13 @@ actor APIClient {
     // MARK: — Internals
 
     private func buildURL(_ path: String, params: [String: String] = [:]) -> URL {
-        var components = URLComponents(url: baseURL(for: path).appendingPathComponent(path), resolvingAgainstBaseURL: true)!
+        // appendingPathComponent percent-encode les "?" embarqués (ex: /history?days=30 → /history%3Fdays=30)
+        // On concatène la chaîne brute puis on parse avec URLComponents pour préserver la query.
+        let raw = baseURL(for: path).absoluteString + path
+        var components = URLComponents(string: raw)!
         if !params.isEmpty {
-            components.queryItems = params.map { URLQueryItem(name: $0.key, value: $0.value) }
+            let existing = components.queryItems ?? []
+            components.queryItems = existing + params.map { URLQueryItem(name: $0.key, value: $0.value) }
         }
         return components.url!
     }

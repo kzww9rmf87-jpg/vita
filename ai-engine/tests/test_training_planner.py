@@ -246,3 +246,92 @@ async def test_plan_no_score_or_badge():
     forbidden = ["score", "badge", "streak", "points", "échec", "mauvais"]
     for word in forbidden:
         assert word not in full_text, f"Mot interdit trouvé : {word}"
+
+
+# ── Fallback jours vides ──────────────────────────────────────────────────────
+
+def test_plan_locally_empty_days_fallback():
+    """Si available_days est vide, le planner utilise [1, 3, 5] par défaut."""
+    inp = make_input(days=[])
+    sessions = plan_locally(inp)
+    assert len(sessions) > 0
+    days_used = {s.day_of_week for s in sessions}
+    assert days_used.issubset({1, 3, 5})
+
+
+# ── Contextes adaptatifs (Sprint 13+) ────────────────────────────────────────
+
+def test_training_planner_input_accepts_adaptive_contexts():
+    """Les champs contextuels optionnels sont acceptés sans modifier le résultat local."""
+    inp = TrainingPlannerInput(
+        user_id="test-user",
+        sport_profile=SportProfileInput(
+            fitness_level=FitnessLevel.intermediate,
+            preferred_activities=["Course"],
+            sessions_per_week=2,
+            session_duration_min=45,
+            available_days=[1, 3],
+        ),
+        journal_context={"mood": "fatigué", "stress": 3},
+        sleep_context={"duration_minutes": 360, "quality_score": 2},
+        nutrition_context={"calories": 1800},
+        meal_plan_context={"plan_name": "Équilibre"},
+        recovery_context={"hrv": 45},
+        uploaded_documents_context=[{"type": "training_pdf", "filename": "prog.pdf"}],
+    )
+    sessions = plan_locally(inp)
+    assert len(sessions) > 0
+    # Le résultat local est identique — les contextes sont ignorés jusqu'au Sprint 13
+    assert all(isinstance(s.duration_min, int) for s in sessions)
+
+
+def test_training_planner_input_contexts_are_optional():
+    """Sans aucun contexte adaptatif, le modèle est valide."""
+    inp = TrainingPlannerInput(
+        user_id="test-user",
+        sport_profile=SportProfileInput(
+            fitness_level=FitnessLevel.beginner,
+            preferred_activities=["Marche"],
+            sessions_per_week=2,
+            session_duration_min=30,
+            available_days=[2, 4],
+        ),
+    )
+    assert inp.journal_context is None
+    assert inp.sleep_context is None
+    assert inp.uploaded_documents_context is None
+    sessions = plan_locally(inp)
+    assert len(sessions) > 0
+
+
+# ── Stubs multimodaux ─────────────────────────────────────────────────────────
+
+def test_uploaded_context_types_defined():
+    """Tous les types multimodaux attendus sont définis."""
+    from contexts.models import UploadedContextType, UploadedContext, ParsedNutritionContext, ParsedTrainingContext
+
+    assert UploadedContextType.menu_photo   == "menu_photo"
+    assert UploadedContextType.training_pdf == "training_pdf"
+    assert UploadedContextType.nutrition_pdf == "nutrition_pdf"
+
+
+def test_uploaded_context_stub_instantiation():
+    """Les stubs sont instanciables avec seulement les champs obligatoires."""
+    from contexts.models import UploadedContext, UploadedContextType
+
+    ctx = UploadedContext(type=UploadedContextType.training_pdf, filename="prog.pdf")
+    assert ctx.raw_text is None  # champ futur, vide pour l'instant
+
+
+def test_parsed_nutrition_context_all_optional():
+    from contexts.models import ParsedNutritionContext
+    ctx = ParsedNutritionContext()
+    assert ctx.meals is None
+    assert ctx.total_calories is None
+
+
+def test_parsed_training_context_all_optional():
+    from contexts.models import ParsedTrainingContext
+    ctx = ParsedTrainingContext()
+    assert ctx.sessions is None
+    assert ctx.program_name is None

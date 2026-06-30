@@ -32,7 +32,7 @@ describe('POST /activity', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/activity',
-      payload: { date: '2026-06-28', activityName: 'Course', durationMinutes: 45 },
+      payload: { date: '2026-06-28', activity_name: 'Course', duration_minutes: 45 },
     })
     expect(res.statusCode).toBe(201)
     expect(res.json()).toMatchObject({ id: 'session-id-1' })
@@ -54,7 +54,7 @@ describe('POST /activity', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/activity',
-      payload: { date: '2026-06-28', activityName: 'X', rpe: 11 },
+      payload: { date: '2026-06-28', activity_name: 'X', rpe: 11 },
     })
     expect(res.statusCode).toBe(400)
   })
@@ -68,8 +68,8 @@ describe('POST /activity', () => {
       url: '/activity',
       payload: {
         date: '2026-06-28',
-        activityName: 'Musculation',
-        sets: [{ exerciseName: 'Squat', setNumber: 1, reps: 10, weightKg: 100 }],
+        activity_name: 'Musculation',
+        sets: [{ exercise_name: 'Squat', set_number: 1, reps: 10, weight_kg: 100 }],
       },
     })
     // queryOne pour INSERT session, query pour INSERT sets
@@ -82,7 +82,7 @@ describe('POST /activity', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/activity',
-      payload: { date: '2026-06-28', activityName: 'Yoga' },
+      payload: { date: '2026-06-28', activity_name: 'Yoga' },
     })
     const body = res.json()
     expect(body).not.toHaveProperty('training_load')
@@ -148,7 +148,7 @@ describe('PATCH /activity/:id', () => {
     const res = await app.inject({
       method: 'PATCH',
       url: '/activity/session-1',
-      payload: { durationMinutes: 60 },
+      payload: { duration_minutes: 60 },
     })
     expect(res.statusCode).toBe(200)
   })
@@ -159,7 +159,7 @@ describe('PATCH /activity/:id', () => {
     const res = await app.inject({
       method: 'PATCH',
       url: '/activity/nonexistent',
-      payload: { durationMinutes: 60 },
+      payload: { duration_minutes: 60 },
     })
     expect(res.statusCode).toBe(404)
   })
@@ -171,7 +171,7 @@ describe('PATCH /activity/:id', () => {
     await app.inject({
       method: 'PATCH',
       url: '/activity/session-1',
-      payload: { durationMinutes: 60 },
+      payload: { duration_minutes: 60 },
     })
     const sql: string = (query as any).mock.calls[0][0]
     expect(sql).not.toContain('rpe')

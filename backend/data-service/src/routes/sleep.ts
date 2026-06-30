@@ -9,17 +9,19 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { query, queryOne } from '../db.js'
 
+// Schémas en snake_case — correspond à ce qu'iOS envoie via JSONEncoder.vita (.convertToSnakeCase)
+
 const SleepEntrySchema = z.object({
-  date:            z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  bedtime:         z.string().datetime().optional(),
-  wakeTime:        z.string().datetime().optional(),
-  durationMinutes: z.number().int().min(0).max(1440).optional(),
-  qualityScore:    z.number().int().min(1).max(5),
-  awakenings:      z.number().int().min(0).max(50).optional(),
-  energyOnWake:    z.number().int().min(1).max(5).optional(),
-  napDurationMin:  z.number().int().min(0).max(180).optional(),
-  notes:           z.string().max(1000).optional(),
-  source:          z.enum(['manual', 'apple_health', 'google_fit', 'oura', 'whoop', 'garmin', 'polar']).default('manual'),
+  date:             z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  bedtime:          z.string().datetime().optional(),
+  wake_time:        z.string().datetime().optional(),
+  duration_minutes: z.number().int().min(0).max(1440).optional(),
+  quality_score:    z.number().int().min(1).max(5),
+  awakenings:       z.number().int().min(0).max(50).optional(),
+  energy_on_wake:   z.number().int().min(1).max(5).optional(),
+  nap_duration_min: z.number().int().min(0).max(180).optional(),
+  notes:            z.string().max(1000).optional(),
+  source:           z.enum(['manual', 'apple_health', 'google_fit', 'oura', 'whoop', 'garmin', 'polar']).default('manual'),
 })
 
 const SleepPatchSchema = SleepEntrySchema.partial().omit({ date: true })
@@ -35,10 +37,10 @@ export const sleepRoutes: FastifyPluginAsync = async (app) => {
     const userId = (req.user as { sub: string }).sub
     const body = parsed.data
 
-    let durationMinutes = body.durationMinutes
-    if (!durationMinutes && body.bedtime && body.wakeTime) {
-      const diff = new Date(body.wakeTime).getTime() - new Date(body.bedtime).getTime()
-      durationMinutes = Math.round(diff / 60000)
+    let duration_minutes = body.duration_minutes
+    if (!duration_minutes && body.bedtime && body.wake_time) {
+      const diff = new Date(body.wake_time).getTime() - new Date(body.bedtime).getTime()
+      duration_minutes = Math.round(diff / 60000)
     }
 
     const row = await queryOne<{ id: string }>(
@@ -59,10 +61,10 @@ export const sleepRoutes: FastifyPluginAsync = async (app) => {
        RETURNING id`,
       [
         userId, body.date,
-        body.bedtime ?? null, body.wakeTime ?? null,
-        durationMinutes ?? null, body.qualityScore,
-        body.awakenings ?? 0, body.energyOnWake ?? null,
-        body.napDurationMin ?? 0, body.notes ?? null,
+        body.bedtime ?? null, body.wake_time ?? null,
+        duration_minutes ?? null, body.quality_score,
+        body.awakenings ?? 0, body.energy_on_wake ?? null,
+        body.nap_duration_min ?? 0, body.notes ?? null,
         body.source,
       ]
     )
@@ -99,12 +101,12 @@ export const sleepRoutes: FastifyPluginAsync = async (app) => {
     }
 
     addField('bedtime',          body.bedtime)
-    addField('wake_time',        body.wakeTime)
-    addField('duration_minutes', body.durationMinutes)
-    addField('quality_score',    body.qualityScore)
+    addField('wake_time',        body.wake_time)
+    addField('duration_minutes', body.duration_minutes)
+    addField('quality_score',    body.quality_score)
     addField('awakenings',       body.awakenings)
-    addField('energy_on_wake',   body.energyOnWake)
-    addField('nap_duration_min', body.napDurationMin)
+    addField('energy_on_wake',   body.energy_on_wake)
+    addField('nap_duration_min', body.nap_duration_min)
     addField('notes',            body.notes)
     addField('source',           body.source)
 

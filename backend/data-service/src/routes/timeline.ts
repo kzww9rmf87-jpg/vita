@@ -184,9 +184,8 @@ export const timelineRoutes: FastifyPluginAsync = async (app) => {
         'fork.knife'                                                  AS icon,
         'nutrition'                                                   AS color_key,
         jsonb_build_object(
-          'calories',        calories,
-          'protein_g',       protein_g,
-          'adherence_score', adherence_score
+          'calories',  calories,
+          'protein_g', protein_g
         )                                                             AS meta
       FROM nutrition_daily
       WHERE user_id = $1 AND date = $2::date

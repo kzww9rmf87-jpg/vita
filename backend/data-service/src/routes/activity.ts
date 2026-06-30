@@ -11,33 +11,35 @@ import { query, queryOne } from '../db.js'
 
 // ── Schémas ───────────────────────────────────────────────────────────────────
 
+// Schémas en snake_case — correspond à ce qu'iOS envoie via JSONEncoder.vita (.convertToSnakeCase)
+
 const ExerciseSetSchema = z.object({
-  exerciseName: z.string().min(1).max(100),
-  muscleGroups: z.array(z.string().max(50)).max(10).optional(),
-  setNumber:    z.number().int().min(1).max(100),
-  reps:         z.number().int().min(0).max(1000).optional(),
-  weightKg:     z.number().min(0).max(1000).optional(),
-  durationSec:  z.number().int().min(0).max(7200).optional(),
-  restSec:      z.number().int().min(0).max(600).optional(),
-  rpe:          z.number().int().min(1).max(10).optional(),
-  notes:        z.string().max(500).optional(),
+  exercise_name: z.string().min(1).max(100),
+  muscle_groups: z.array(z.string().max(50)).max(10).optional(),
+  set_number:    z.number().int().min(1).max(100),
+  reps:          z.number().int().min(0).max(1000).optional(),
+  weight_kg:     z.number().min(0).max(1000).optional(),
+  duration_sec:  z.number().int().min(0).max(7200).optional(),
+  rest_sec:      z.number().int().min(0).max(600).optional(),
+  rpe:           z.number().int().min(1).max(10).optional(),
+  notes:         z.string().max(500).optional(),
 })
 
 const ActivitySessionSchema = z.object({
-  date:            z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  startedAt:       z.string().datetime().optional(),
-  endedAt:         z.string().datetime().optional(),
-  activityName:    z.string().min(1).max(100),
-  durationMinutes: z.number().int().min(0).max(600).optional(),
-  caloriesBurned:  z.number().int().min(0).max(10000).optional(),
-  hrAvgBpm:        z.number().int().min(30).max(250).optional(),
-  hrMaxBpm:        z.number().int().min(30).max(250).optional(),
-  rpe:             z.number().int().min(1).max(10).optional(),
-  distanceMeters:  z.number().int().min(0).max(200000).optional(),
-  steps:           z.number().int().min(0).max(100000).optional(),
-  notes:           z.string().max(1000).optional(),
-  source:          z.string().max(50).default('manual'),
-  sets:            z.array(ExerciseSetSchema).max(200).optional(),
+  date:             z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  started_at:       z.string().datetime().optional(),
+  ended_at:         z.string().datetime().optional(),
+  activity_name:    z.string().min(1).max(100),
+  duration_minutes: z.number().int().min(0).max(600).optional(),
+  calories_burned:  z.number().int().min(0).max(10000).optional(),
+  hr_avg_bpm:       z.number().int().min(30).max(250).optional(),
+  hr_max_bpm:       z.number().int().min(30).max(250).optional(),
+  rpe:              z.number().int().min(1).max(10).optional(),
+  distance_meters:  z.number().int().min(0).max(200000).optional(),
+  steps:            z.number().int().min(0).max(100000).optional(),
+  notes:            z.string().max(1000).optional(),
+  source:           z.string().max(50).default('manual'),
+  sets:             z.array(ExerciseSetSchema).max(200).optional(),
 })
 
 const ActivityPatchSchema = ActivitySessionSchema.partial().omit({ date: true, sets: true })
@@ -64,11 +66,11 @@ export const activityRoutes: FastifyPluginAsync = async (app) => {
        RETURNING id`,
       [
         userId, body.date,
-        body.startedAt ?? null, body.endedAt ?? null,
-        body.activityName, body.durationMinutes ?? null,
-        body.caloriesBurned ?? null, body.hrAvgBpm ?? null,
-        body.hrMaxBpm ?? null, body.rpe ?? null,
-        body.distanceMeters ?? null, body.steps ?? null,
+        body.started_at ?? null, body.ended_at ?? null,
+        body.activity_name, body.duration_minutes ?? null,
+        body.calories_burned ?? null, body.hr_avg_bpm ?? null,
+        body.hr_max_bpm ?? null, body.rpe ?? null,
+        body.distance_meters ?? null, body.steps ?? null,
         body.notes ?? null, body.source,
       ]
     )
@@ -82,9 +84,9 @@ export const activityRoutes: FastifyPluginAsync = async (app) => {
               duration_sec, rest_sec, rpe, notes)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
           [
-            sessionId, set.exerciseName, set.muscleGroups ?? [],
-            set.setNumber, set.reps ?? null, set.weightKg ?? null,
-            set.durationSec ?? null, set.restSec ?? null,
+            sessionId, set.exercise_name, set.muscle_groups ?? [],
+            set.set_number, set.reps ?? null, set.weight_kg ?? null,
+            set.duration_sec ?? null, set.rest_sec ?? null,
             set.rpe ?? null, set.notes ?? null,
           ]
         )
@@ -119,13 +121,13 @@ export const activityRoutes: FastifyPluginAsync = async (app) => {
       if (val !== undefined) { fields.push(`${col} = $${idx++}`); values.push(val) }
     }
 
-    addField('activity_name',    body.activityName)
-    addField('duration_minutes', body.durationMinutes)
-    addField('calories_burned',  body.caloriesBurned)
-    addField('hr_avg_bpm',       body.hrAvgBpm)
-    addField('hr_max_bpm',       body.hrMaxBpm)
+    addField('activity_name',    body.activity_name)
+    addField('duration_minutes', body.duration_minutes)
+    addField('calories_burned',  body.calories_burned)
+    addField('hr_avg_bpm',       body.hr_avg_bpm)
+    addField('hr_max_bpm',       body.hr_max_bpm)
     addField('rpe',              body.rpe)
-    addField('distance_meters',  body.distanceMeters)
+    addField('distance_meters',  body.distance_meters)
     addField('steps',            body.steps)
     addField('notes',            body.notes)
 

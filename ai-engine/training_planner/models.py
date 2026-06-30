@@ -42,6 +42,13 @@ class TrainingPlannerInput(BaseModel):
     equipment:       list[str] = Field(default_factory=list)
     pain_areas:      list[str] = Field(default_factory=list)
     prefer_outdoors: bool      = False
+    # Contextes adaptatifs futurs — champs optionnels, ignorés jusqu'au moteur adaptatif (Sprint 13+)
+    journal_context:            Optional[dict] = None
+    sleep_context:              Optional[dict] = None
+    nutrition_context:          Optional[dict] = None
+    meal_plan_context:          Optional[dict] = None
+    recovery_context:           Optional[dict] = None
+    uploaded_documents_context: Optional[list] = None
 
 
 # ── Output ─────────────────────────────────────────────────────────────────────

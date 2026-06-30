@@ -32,7 +32,7 @@ describe('POST /sleep', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/sleep',
-      payload: { date: '2026-06-28', qualityScore: 4, durationMinutes: 480 },
+      payload: { date: '2026-06-28', quality_score: 4, duration_minutes: 480 },
     })
     expect(res.statusCode).toBe(201)
     expect(res.json()).toMatchObject({ id: 'entry-id-1' })
@@ -54,7 +54,7 @@ describe('POST /sleep', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/sleep',
-      payload: { date: '2026-06-28', qualityScore: 6 },
+      payload: { date: '2026-06-28', quality_score: 6 },
     })
     expect(res.statusCode).toBe(400)
   })
@@ -77,9 +77,9 @@ describe('POST /sleep', () => {
       url: '/sleep',
       payload: {
         date: '2026-06-28',
-        qualityScore: 3,
+        quality_score: 3,
         bedtime: '2026-06-27T22:00:00Z',
-        wakeTime: '2026-06-28T06:30:00Z',
+        wake_time: '2026-06-28T06:30:00Z',
       },
     })
     const call = (queryOne as any).mock.calls[0]
@@ -93,7 +93,7 @@ describe('POST /sleep', () => {
     await app.inject({
       method: 'POST',
       url: '/sleep',
-      payload: { date: '2026-06-28', qualityScore: 3 },
+      payload: { date: '2026-06-28', quality_score: 3 },
     })
     expect((queryOne as any).mock.calls[0][1][0]).toBe('user-uuid-123')
   })
@@ -163,7 +163,7 @@ describe('PATCH /sleep/:date', () => {
     const res = await app.inject({
       method: 'PATCH',
       url: '/sleep/2026-06-28',
-      payload: { qualityScore: 5 },
+      payload: { quality_score: 5 },
     })
     expect(res.statusCode).toBe(200)
   })
@@ -174,17 +174,17 @@ describe('PATCH /sleep/:date', () => {
     const res = await app.inject({
       method: 'PATCH',
       url: '/sleep/2026-06-28',
-      payload: { qualityScore: 5 },
+      payload: { quality_score: 5 },
     })
     expect(res.statusCode).toBe(404)
   })
 
-  it('400 when qualityScore out of range in patch', async () => {
+  it('400 when quality_score out of range in patch', async () => {
     const app = await makeApp()
     const res = await app.inject({
       method: 'PATCH',
       url: '/sleep/2026-06-28',
-      payload: { qualityScore: 0 },
+      payload: { quality_score: 0 },
     })
     expect(res.statusCode).toBe(400)
   })
@@ -196,7 +196,7 @@ describe('PATCH /sleep/:date', () => {
     await app.inject({
       method: 'PATCH',
       url: '/sleep/2026-06-28',
-      payload: { qualityScore: 5 },
+      payload: { quality_score: 5 },
     })
     const sql: string = (query as any).mock.calls[0][0]
     // Un PATCH avec seulement qualityScore ne doit pas toucher bedtime, notes, etc.
