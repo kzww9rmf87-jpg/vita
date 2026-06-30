@@ -1,6 +1,22 @@
 from __future__ import annotations
+from enum import Enum
 from typing import Literal, Optional
 from pydantic import BaseModel, Field
+
+
+class ActivityLoadLevel(str, Enum):
+    rest      = "rest"       # jour sans activité
+    light     = "light"      # séance courte (≤ 30 min)
+    moderate  = "moderate"   # séance standard
+    demanding = "demanding"  # journée chargée (longue ou multiple)
+
+
+class ActivityDayContext(BaseModel):
+    """Contexte sportif d'un jour de la semaine. Passé depuis le plan d'entraînement actif."""
+    day_of_week:        int             = Field(ge=0, le=6)
+    load_level:         ActivityLoadLevel = ActivityLoadLevel.rest
+    total_duration_min: int             = 0
+    dominant_type:      str             = "rest"   # strength | cardio | mobility | walk | combat | rest
 
 
 class RecipeForPlan(BaseModel):

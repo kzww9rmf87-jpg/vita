@@ -26,6 +26,20 @@ struct MealPlannerView: View {
                                     .padding(.horizontal, VitaSpacing.md)
                             }
 
+                            // Mention discrète plan sportif — sans score, sans jugement
+                            if vm.usedSportContext {
+                                HStack(spacing: VitaSpacing.xs) {
+                                    Image(systemName: "figure.run")
+                                        .font(.caption)
+                                        .foregroundStyle(VitaColor.accent)
+                                    Text("VITA tient compte de ta semaine sportive.")
+                                        .font(VitaFont.caption())
+                                        .foregroundStyle(VitaColor.textSecondary)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, VitaSpacing.md)
+                            }
+
                             ForEach(0..<7, id: \.self) { day in
                                 VStack(spacing: 4) {
                                     DayRow(

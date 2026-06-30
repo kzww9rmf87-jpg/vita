@@ -197,3 +197,60 @@ describe('DELETE /sport/training-plans/:id', () => {
     expect(res.json().error).toBe('NOT_FOUND')
   })
 })
+
+// ── GET /sport/training-plans/active/context ──────────────────────────────────
+
+describe('GET /sport/training-plans/active/context', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('returns 7 rest days when no active plan', async () => {
+    ;(queryOne as any).mockResolvedValue(null)
+    const app = await makeApp()
+    const res = await app.inject({ method: 'GET', url: '/sport/training-plans/active/context' })
+    expect(res.statusCode).toBe(200)
+    const body = res.json()
+    expect(body.hasActivePlan).toBe(false)
+    expect(body.days).toHaveLength(7)
+    expect(body.days[0]).toMatchObject({ load_level: 'rest', session_count: 0 })
+  })
+
+  it('returns hasActivePlan true with load_level per day', async () => {
+    ;(queryOne as any).mockResolvedValue({ id: 'plan-1' })
+    ;(query as any).mockResolvedValue([
+      { day_of_week: 1, activity_name: 'Musculation', duration_min: 60 },
+      { day_of_week: 1, activity_name: 'Course', duration_min: 30 },
+      { day_of_week: 3, activity_name: 'Yoga', duration_min: 30 },
+    ])
+    const app = await makeApp()
+    const res = await app.inject({ method: 'GET', url: '/sport/training-plans/active/context' })
+    expect(res.statusCode).toBe(200)
+    const body = res.json()
+    expect(body.hasActivePlan).toBe(true)
+    const day1 = body.days.find((d: any) => d.day_of_week === 1)
+    expect(day1.session_count).toBe(2)
+    expect(day1.total_duration_min).toBe(90)
+    expect(day1.load_level).toBe('demanding')
+    const day3 = body.days.find((d: any) => d.day_of_week === 3)
+    expect(day3.load_level).toBe('light')
+  })
+
+  it('moderate when single session > 30min and ≤ 60min total', async () => {
+    ;(queryOne as any).mockResolvedValue({ id: 'plan-2' })
+    ;(query as any).mockResolvedValue([
+      { day_of_week: 0, activity_name: 'Course', duration_min: 45 },
+    ])
+    const app = await makeApp()
+    const res = await app.inject({ method: 'GET', url: '/sport/training-plans/active/context' })
+    const day0 = res.json().days.find((d: any) => d.day_of_week === 0)
+    expect(day0.load_level).toBe('moderate')
+  })
+
+  it('rest days have dominant_type rest', async () => {
+    ;(queryOne as any).mockResolvedValue({ id: 'plan-3' })
+    ;(query as any).mockResolvedValue([])
+    const app = await makeApp()
+    const res = await app.inject({ method: 'GET', url: '/sport/training-plans/active/context' })
+    const days = res.json().days as Array<{ dominant_type: string }>
+    expect(days.every(d => d.dominant_type === 'rest')).toBe(true)
+  })
+})

@@ -416,15 +416,25 @@ export interface SmartMealPlanResponse {
   used_claude: boolean
 }
 
+// Contexte sportif journalier passé au MealPlannerAgent (Sprint 13).
+// Correspond à ActivityDayContext dans l'ai-engine (meal_planner/models.py).
+export interface ActivityDayContext {
+  day_of_week:        number
+  load_level:         'rest' | 'light' | 'moderate' | 'demanding'
+  total_duration_min: number
+  dominant_type:      string
+}
+
 export async function requestSmartMealPlan(
   userId: string,
   recipes: RecipeWithMacros[],
   profile: NutritionProfilePayload | null,
   pantry: string[],
+  activitySchedule?: ActivityDayContext[],
 ): Promise<SmartMealPlanResponse> {
   return callAIEngine<object, SmartMealPlanResponse>(
     '/meal-planner/plan',
-    { user_id: userId, recipes, profile, pantry },
+    { user_id: userId, recipes, profile, pantry, activity_schedule: activitySchedule ?? null },
     TIMEOUT_MS_LONG  // peut appeler Claude pour le raffinement
   )
 }

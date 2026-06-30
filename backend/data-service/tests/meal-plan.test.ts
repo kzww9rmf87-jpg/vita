@@ -669,4 +669,71 @@ describe('Sprint 9.3 — distribute avec breakfast et snack', () => {
     expect(insertCall).toBeDefined()
     expect(insertCall![1]).toContain('snack')
   })
+
+  it('usedSportContext false quand aucun plan sportif actif', async () => {
+    const recipeUUID = 'cccccccc-dddd-eeee-ffff-aaaaaaaaaaaa'
+    ;(queryOne as any)
+      .mockResolvedValueOnce({ id: 'p1' })   // plan repas
+      .mockResolvedValueOnce(null)            // profil nutri absent
+      .mockResolvedValueOnce(null)            // plan sport absent
+    ;(query as any)
+      .mockResolvedValueOnce([
+        { id: recipeUUID, name: 'Salade', servings: 1,
+          prep_minutes: 5, cook_minutes: 0,
+          calories: 150, protein_g: 5.0, carbs_g: 10.0, fat_g: 8.0, fiber_g: 2.0 },
+      ])
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([])
+    ;(requestSmartMealPlan as any).mockResolvedValue({
+      slots: [], day_macros: [], week_macros: {}, used_claude: false,
+    })
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'POST', url: '/meal-plans/p1/distribute',
+      payload: { recipe_ids: [recipeUUID] },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().usedSportContext).toBe(false)
+  })
+
+  it('usedSportContext true et activity_schedule passé à l\'IA quand plan actif', async () => {
+    const recipeUUID = 'dddddddd-eeee-ffff-aaaa-bbbbbbbbbbbb'
+    ;(queryOne as any)
+      .mockResolvedValueOnce({ id: 'p1' })              // plan repas
+      .mockResolvedValueOnce(null)                       // profil nutri absent
+      .mockResolvedValueOnce({ id: 'sport-plan-1' })    // plan sport actif
+    ;(query as any)
+      .mockResolvedValueOnce([
+        { id: recipeUUID, name: 'Riz protéines', servings: 2,
+          prep_minutes: 10, cook_minutes: 20,
+          calories: 550, protein_g: 40.0, carbs_g: 60.0, fat_g: 10.0, fiber_g: 5.0 },
+      ])
+      .mockResolvedValueOnce([])    // garde-manger
+      .mockResolvedValueOnce([      // séances sport
+        { day_of_week: 1, duration_min: 75, activity_name: 'Musculation' },
+        { day_of_week: 1, duration_min: 45, activity_name: 'Course' },
+        { day_of_week: 4, duration_min: 25, activity_name: 'Yoga' },
+      ])
+      .mockResolvedValue([])
+    ;(requestSmartMealPlan as any).mockResolvedValue({
+      slots: [], day_macros: [], week_macros: {}, used_claude: false,
+    })
+    const app = await makeApp()
+    const res = await app.inject({
+      method: 'POST', url: '/meal-plans/p1/distribute',
+      payload: { recipe_ids: [recipeUUID] },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().usedSportContext).toBe(true)
+
+    // Vérifie que le 5e argument est bien un tableau de 7 jours
+    const callArgs = (requestSmartMealPlan as any).mock.calls[0]
+    const schedule = callArgs[4]
+    expect(schedule).toHaveLength(7)
+    const day1 = schedule.find((d: any) => d.day_of_week === 1)
+    expect(day1.load_level).toBe('demanding')   // 2 séances, 120 min total > 60
+    expect(day1.total_duration_min).toBe(120)
+    const day4 = schedule.find((d: any) => d.day_of_week === 4)
+    expect(day4.load_level).toBe('light')        // 1 séance ≤ 30 min
+  })
 })

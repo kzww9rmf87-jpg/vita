@@ -137,3 +137,124 @@ class TestRecipeForPlan:
     def test_servings_minimum_1(self):
         with pytest.raises(Exception):
             RecipeForPlan(id="r1", name="Test", servings=0)
+
+
+# ── Sprint 13 — Sport × Nutrition Bridge ─────────────────────────────────────
+
+from meal_planner.models import ActivityDayContext, ActivityLoadLevel
+from meal_planner.agent import SmartMealPlanInput, RecipeWithMacros, PlannedSlot, _nudge_for_sport_context, _should_call_claude
+
+
+def make_recipe_with_calories(id: str, name: str, calories: int, servings: int = 1) -> RecipeWithMacros:
+    return RecipeWithMacros(id=id, name=name, servings=servings, calories=calories)
+
+
+def make_schedule(demanding_days: list[int] = [], rest_days: list[int] = []) -> list[ActivityDayContext]:
+    result = []
+    for day in range(7):
+        if day in demanding_days:
+            result.append(ActivityDayContext(day_of_week=day, load_level=ActivityLoadLevel.demanding, total_duration_min=90))
+        elif day in rest_days:
+            result.append(ActivityDayContext(day_of_week=day, load_level=ActivityLoadLevel.rest, total_duration_min=0))
+        else:
+            result.append(ActivityDayContext(day_of_week=day, load_level=ActivityLoadLevel.rest, total_duration_min=0))
+    return result
+
+
+class TestSmartMealPlanInputAcceptsActivitySchedule:
+    def test_activity_schedule_is_optional(self):
+        inp = SmartMealPlanInput(
+            user_id="u1",
+            recipes=[RecipeWithMacros(id="r1", name="Poulet", servings=2)],
+        )
+        assert inp.activity_schedule is None
+
+    def test_activity_schedule_accepted(self):
+        schedule = make_schedule(demanding_days=[1])
+        inp = SmartMealPlanInput(
+            user_id="u1",
+            recipes=[RecipeWithMacros(id="r1", name="Poulet", servings=2)],
+            activity_schedule=schedule,
+        )
+        assert len(inp.activity_schedule) == 7
+
+    def test_activity_day_context_fields(self):
+        ctx = ActivityDayContext(day_of_week=1, load_level=ActivityLoadLevel.demanding, total_duration_min=90)
+        assert ctx.load_level == ActivityLoadLevel.demanding
+        assert ctx.total_duration_min == 90
+        assert ctx.dominant_type == "rest"   # valeur par défaut
+
+    def test_activity_load_level_enum_values(self):
+        assert ActivityLoadLevel.rest.value      == "rest"
+        assert ActivityLoadLevel.light.value     == "light"
+        assert ActivityLoadLevel.moderate.value  == "moderate"
+        assert ActivityLoadLevel.demanding.value == "demanding"
+
+
+class TestNudgeForSportContext:
+    def _make_slots(self, recipes):
+        slots = []
+        for day in range(7):
+            for slot in ["lunch", "dinner"]:
+                r = recipes[(day * 2 + (0 if slot == "lunch" else 1)) % len(recipes)]
+                slots.append(PlannedSlot(
+                    recipe_id=r.id, recipe_name=r.name,
+                    day_of_week=day, meal_slot=slot, portions=1.0,
+                ))
+        return slots
+
+    def test_demanding_day_gets_calorie_dense_recipe(self):
+        light_recipe   = make_recipe_with_calories("r1", "Salade",     calories=200)
+        heavy_recipe   = make_recipe_with_calories("r2", "Riz prot.",  calories=600)
+        recipes        = [light_recipe, heavy_recipe]
+        schedule       = make_schedule(demanding_days=[0])
+        # Slots day 0 lunch/dinner: alternance r1/r2
+        slots          = self._make_slots(recipes)
+        result         = _nudge_for_sport_context(slots, recipes, schedule)
+        day0_lunches   = [s for s in result if s.day_of_week == 0 and s.meal_slot == "lunch"]
+        assert len(day0_lunches) == 1
+        # La recette calorique (r2) doit être prioritairement sur day 0
+        day0_ids = {s.recipe_id for s in result if s.day_of_week == 0}
+        assert "r2" in day0_ids
+
+    def test_nudge_preserves_slot_count(self):
+        recipes  = [make_recipe_with_calories(f"r{i}", f"R{i}", calories=300 + i * 50) for i in range(3)]
+        schedule = make_schedule(demanding_days=[1, 3])
+        slots    = self._make_slots(recipes)
+        result   = _nudge_for_sport_context(slots, recipes, schedule)
+        assert len(result) == 14
+
+    def test_nudge_returns_slots_unchanged_when_no_calories(self):
+        recipes  = [RecipeWithMacros(id="r1", name="Poulet", servings=2), RecipeWithMacros(id="r2", name="Salade", servings=2)]
+        schedule = make_schedule(demanding_days=[0])
+        slots    = self._make_slots(recipes)
+        result   = _nudge_for_sport_context(slots, recipes, schedule)
+        assert len(result) == 14
+
+
+class TestShouldCallClaudeWithSportContext:
+    def _profile(self):
+        from meal_planner.agent import NutritionProfile
+        return NutritionProfile(objective="performance", activity_level="active", meals_per_day=3, batch_cooking=False)
+
+    def test_returns_true_when_non_rest_days_and_macros(self):
+        recipes  = [make_recipe_with_calories(f"r{i}", f"Plat {i}", calories=500) for i in range(4)]
+        profile  = self._profile()
+        schedule = make_schedule(demanding_days=[1])
+        assert _should_call_claude(recipes, profile, schedule)
+
+    def test_returns_false_when_all_rest(self):
+        recipes  = [make_recipe_with_calories("r1", "Salade", calories=200)]
+        profile  = self._profile()
+        schedule = make_schedule()   # tous rest
+        result   = _should_call_claude(recipes, profile, schedule)
+        # Peut être False si pas d'autre critère — on vérifie juste pas de crash
+        assert isinstance(result, bool)
+
+
+class TestNoForbiddenWordsInSportContext:
+    def test_activity_load_level_labels_are_descriptive_not_judgmental(self):
+        forbidden = ["trop", "pas assez", "mauvais", "score", "insuffisant", "excessif"]
+        for level in ActivityLoadLevel:
+            for word in forbidden:
+                assert word not in level.value

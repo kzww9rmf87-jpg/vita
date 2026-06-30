@@ -9,7 +9,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { query, queryOne } from '../db.js'
 import { requestMealDistribution, requestSmartMealPlan } from '../ai-client.js'
-import type { RecipeWithMacros, NutritionProfilePayload } from '../ai-client.js'
+import type { RecipeWithMacros, NutritionProfilePayload, ActivityDayContext } from '../ai-client.js'
 
 // ── Schémas ───────────────────────────────────────────────────────────────────
 
@@ -77,6 +77,25 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
                'bouillon', 'cube', 'chapelure', 'biscotte', 'pain', 'céréale',
                'granola', 'flocon', 'avoine', 'quinoa', 'couscous', 'boulgour',
                'noix', 'amande', 'noisette', 'cacahuète', 'pistache', 'raisin sec'],
+}
+
+function _inferDominantTypeMeal(names: string[]): string {
+  const keywords: Array<[string[], string]> = [
+    [['musculation', 'muscu', 'weight', 'haltère', 'gym', 'force'], 'strength'],
+    [['krav', 'combat', 'boxe', 'judo', 'mma'],                     'combat'],
+    [['yoga', 'mobilité', 'mobilite', 'stretching', 'pilates'],     'mobility'],
+    [['marche', 'walk', 'randonnée', 'rando'],                      'walk'],
+  ]
+  const counts: Record<string, number> = {}
+  for (const name of names) {
+    const lower = name.toLowerCase()
+    let type = 'cardio'
+    for (const [kws, t] of keywords) {
+      if (kws.some(k => lower.includes(k))) { type = t; break }
+    }
+    counts[type] = (counts[type] ?? 0) + 1
+  }
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]![0]
 }
 
 function categorize(name: string): string {
@@ -318,10 +337,40 @@ export const mealPlanRoutes: FastifyPluginAsync = async (app) => {
     )
     const pantry = pantryRows.map(p => p.ingredient_name.toLowerCase().trim())
 
-    // Appel AI Engine — agent intelligent Sprint 9
+    // Plan sportif actif — aligne les repas sur la charge sportive de la semaine
+    let activitySchedule: ActivityDayContext[] | undefined
+    const activeSportPlan = await queryOne<{ id: string }>(
+      `SELECT id FROM training_plans WHERE user_id = $1 AND is_active = true LIMIT 1`,
+      [userId]
+    )
+    if (activeSportPlan) {
+      const sportSessions = await query<{ day_of_week: number; duration_min: number; activity_name: string }>(
+        `SELECT day_of_week, duration_min, activity_name FROM training_plan_sessions WHERE plan_id = $1`,
+        [activeSportPlan.id]
+      )
+      const byDay = new Map<number, Array<{ day_of_week: number; duration_min: number; activity_name: string }>>()
+      for (const s of sportSessions) {
+        if (!byDay.has(s.day_of_week)) byDay.set(s.day_of_week, [])
+        byDay.get(s.day_of_week)!.push(s)
+      }
+      activitySchedule = Array.from({ length: 7 }, (_, day): ActivityDayContext => {
+        const daySessions = byDay.get(day) ?? []
+        const count    = daySessions.length
+        const totalMin = daySessions.reduce((sum, s) => sum + s.duration_min, 0)
+        let load_level: 'rest' | 'light' | 'moderate' | 'demanding'
+        if (count === 0)                        load_level = 'rest'
+        else if (count === 1 && totalMin <= 30) load_level = 'light'
+        else if (totalMin <= 60)                load_level = 'moderate'
+        else                                    load_level = 'demanding'
+        const dominant_type = count > 0 ? _inferDominantTypeMeal(daySessions.map(s => s.activity_name)) : 'rest'
+        return { day_of_week: day, load_level, total_duration_min: totalMin, dominant_type }
+      })
+    }
+
+    // Appel AI Engine — agent intelligent Sprint 9 + contexte sportif Sprint 13
     let result
     try {
-      result = await requestSmartMealPlan(userId, recipes, profileRow ?? null, pantry)
+      result = await requestSmartMealPlan(userId, recipes, profileRow ?? null, pantry, activitySchedule)
     } catch {
       return reply.status(503).send({ error: 'AI_ENGINE_UNAVAILABLE' })
     }
@@ -344,10 +393,11 @@ export const mealPlanRoutes: FastifyPluginAsync = async (app) => {
     }
 
     return reply.status(200).send({
-      itemsCreated: result.slots.length,
-      dayMacros:    result.day_macros,
-      weekMacros:   result.week_macros,
-      usedClaude:   result.used_claude,
+      itemsCreated:    result.slots.length,
+      dayMacros:       result.day_macros,
+      weekMacros:      result.week_macros,
+      usedClaude:      result.used_claude,
+      usedSportContext: activitySchedule != null,
     })
   })
 

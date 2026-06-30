@@ -40,6 +40,34 @@ const TrainingPlanSchema = z.object({
   sessions:    z.array(TrainingPlanSessionSchema).max(50).default([]),
 })
 
+// ── Inférence du type dominant depuis le nom d'activité ──────────────────────
+
+const _TYPE_KEYWORDS: Array<[string[], string]> = [
+  [['musculation', 'muscu', 'weight', 'haltère', 'gym', 'force'], 'strength'],
+  [['krav', 'combat', 'boxe', 'judo', 'mma', 'arts martiaux'],    'combat'],
+  [['yoga', 'mobilité', 'mobilite', 'étirement', 'stretching', 'pilates'], 'mobility'],
+  [['marche', 'walk', 'randonnée', 'rando'],                      'walk'],
+  [['course', 'run', 'vélo', 'velo', 'natation', 'swim', 'cardio', 'hiit'], 'cardio'],
+]
+
+function _inferType(name: string): string {
+  const lower = name.toLowerCase()
+  for (const [keywords, type] of _TYPE_KEYWORDS) {
+    if (keywords.some(k => lower.includes(k))) return type
+  }
+  return 'cardio'
+}
+
+function _inferDominantType(activityNames: string[]): string {
+  if (activityNames.length === 0) return 'rest'
+  const counts: Record<string, number> = {}
+  for (const name of activityNames) {
+    const t = _inferType(name)
+    counts[t] = (counts[t] ?? 0) + 1
+  }
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]![0]
+}
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 export const sportRoutes: FastifyPluginAsync = async (app) => {
@@ -269,6 +297,76 @@ export const sportRoutes: FastifyPluginAsync = async (app) => {
         sortOrder:    s.sort_order,
       })),
     })
+  })
+
+  // GET /sport/training-plans/active/context
+  // Retourne le contexte sportif de la semaine active (7 jours, load_level, dominant_type).
+  // Utilisé par le Nutrition Planner pour organiser les repas selon la charge sportive.
+  // Si aucun plan actif : retourne 7 jours "rest".
+  // Auth: JWT requis
+  app.get('/training-plans/active/context', async (req, reply) => {
+    const userId = (req.user as { sub: string }).sub
+
+    const plan = await queryOne<{ id: string }>(
+      `SELECT id FROM training_plans WHERE user_id = $1 AND is_active = true LIMIT 1`,
+      [userId]
+    )
+
+    if (!plan) {
+      return reply.send({
+        hasActivePlan: false,
+        days: Array.from({ length: 7 }, (_, i) => ({
+          day_of_week:        i,
+          activity_label:     'Repos',
+          load_level:         'rest',
+          session_count:      0,
+          total_duration_min: 0,
+          dominant_type:      'rest',
+        })),
+      })
+    }
+
+    const sessions = await query<{
+      day_of_week:   number
+      activity_name: string
+      duration_min:  number
+    }>(
+      `SELECT day_of_week, activity_name, duration_min
+       FROM training_plan_sessions WHERE plan_id = $1
+       ORDER BY day_of_week, sort_order`,
+      [plan.id]
+    )
+
+    // Regrouper par jour
+    const byDay = new Map<number, typeof sessions>()
+    for (const s of sessions) {
+      if (!byDay.has(s.day_of_week)) byDay.set(s.day_of_week, [])
+      byDay.get(s.day_of_week)!.push(s)
+    }
+
+    const days = Array.from({ length: 7 }, (_, day) => {
+      const daySessions  = byDay.get(day) ?? []
+      const count        = daySessions.length
+      const totalMin     = daySessions.reduce((sum, s) => sum + s.duration_min, 0)
+      const dominantType = count > 0 ? _inferDominantType(daySessions.map(s => s.activity_name)) : 'rest'
+
+      let loadLevel: 'rest' | 'light' | 'moderate' | 'demanding'
+      if (count === 0)                              loadLevel = 'rest'
+      else if (count === 1 && totalMin <= 30)       loadLevel = 'light'
+      else if (totalMin <= 60)                      loadLevel = 'moderate'
+      else                                          loadLevel = 'demanding'
+
+      return {
+        day_of_week:        day,
+        activity_label:     count > 0 ? daySessions[0]!.activity_name : 'Repos',
+        load_level:         loadLevel,
+        session_count:      count,
+        total_duration_min: totalMin,
+        dominant_type:      dominantType,
+      }
+    })
+
+    return reply.send({ hasActivePlan: true, days })
   })
 
   // DELETE /sport/training-plans/:id

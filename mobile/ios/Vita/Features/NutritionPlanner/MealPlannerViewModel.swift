@@ -62,10 +62,11 @@ struct MealPlanItemPatch: Encodable {
 // MARK: — ViewModel
 
 struct DistributeResponse: Codable {
-    let itemsCreated: Int
-    let dayMacros:    [DayMacros]?
-    let weekMacros:   DayMacros?
-    let usedClaude:   Bool?
+    let itemsCreated:    Int
+    let dayMacros:       [DayMacros]?
+    let weekMacros:      DayMacros?
+    let usedClaude:      Bool?
+    let usedSportContext: Bool?
 }
 
 @MainActor
@@ -74,6 +75,7 @@ final class MealPlannerViewModel: ObservableObject {
     @Published var currentPlan: MealPlanDetail?
     @Published var dayMacros:  [DayMacros] = []
     @Published var weekMacros: DayMacros?
+    @Published var usedSportContext = false
     @Published var isLoading = false
     @Published var isSaving = false
     @Published var errorMessage: String?
@@ -167,8 +169,9 @@ final class MealPlannerViewModel: ObservableObject {
         let body = ["recipeIds": recipeIds]
         do {
             let result: DistributeResponse = try await APIClient.shared.post("/meal-plans/\(planId)/distribute", body: body)
-            dayMacros  = result.dayMacros  ?? []
-            weekMacros = result.weekMacros
+            dayMacros        = result.dayMacros  ?? []
+            weekMacros       = result.weekMacros
+            usedSportContext = result.usedSportContext ?? false
             await loadCurrentPlan()
         } catch { errorMessage = error.localizedDescription }
     }

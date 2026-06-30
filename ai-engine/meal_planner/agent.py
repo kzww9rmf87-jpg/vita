@@ -46,7 +46,7 @@ from .macro_calculator import (
     calculate_meal_macros,
     sum_day_macros,
 )
-from .models import MealDistribution, RecipeForPlan
+from .models import ActivityDayContext, ActivityLoadLevel, MealDistribution, RecipeForPlan
 from .planner import MealPlanner
 
 logger = logging.getLogger(__name__)
@@ -125,8 +125,8 @@ class SmartMealPlanInput(BaseModel):
     user_id:           str
     recipes:           list[RecipeWithMacros]
     profile:           Optional[NutritionProfile] = None
-    pantry:            list[str] = []  # noms d'ingrédients en minuscules
-    activity_schedule: Optional[list] = None  # §7 — réservé Sprint futur
+    pantry:            list[str] = []
+    activity_schedule: Optional[list[ActivityDayContext]] = None  # Sprint 13 — plan sportif actif
 
 
 @dataclass
@@ -165,14 +165,19 @@ class MealPlannerAgent:
         3. Raffinement via Claude si profil disponible + macros utiles
         4. Retour du plan complet
         """
-        recipes = input.recipes
-        profile = input.profile
+        recipes           = input.recipes
+        profile           = input.profile
+        activity_schedule = input.activity_schedule
 
         if not recipes:
             return _empty_result()
 
         # ── Étape 1 : distribution locale ─────────────────────────────────────
-        raw_slots = _local_distribute(recipes, profile)
+        raw_slots = _local_distribute(recipes, profile, activity_schedule)
+
+        # ── Étape 1b : nudge sport-aware (si plan sportif disponible + macros) ─
+        if activity_schedule and any(r.calories for r in recipes):
+            raw_slots = _nudge_for_sport_context(raw_slots, recipes, activity_schedule)
 
         # ── Étape 2 : calcul des macros par créneau (toujours déterministe) ──
         recipe_map = {r.id: r for r in recipes}
@@ -180,8 +185,10 @@ class MealPlannerAgent:
 
         # ── Étape 3 : raffinement Claude (optionnel) ──────────────────────────
         used_claude = False
-        if profile and _should_call_claude(recipes, profile):
-            refined = await _refine_with_claude(slots_with_macros, recipes, profile)
+        if profile and _should_call_claude(recipes, profile, activity_schedule):
+            refined = await _refine_with_claude(
+                slots_with_macros, recipes, profile, activity_schedule
+            )
             if refined is not None:
                 slots_with_macros = _attach_macros(refined, recipe_map)
                 used_claude = True
@@ -218,6 +225,7 @@ def _build_slots_order(meals_per_day: int) -> list[tuple[int, str]]:
 def _local_distribute(
     recipes: list[RecipeWithMacros],
     profile: Optional[NutritionProfile],
+    activity_schedule: Optional[list[ActivityDayContext]] = None,
 ) -> list[PlannedSlot]:
     """
     Distribue les recettes sur les créneaux selon des règles locales.
@@ -359,27 +367,116 @@ def _compute_week_macros(day_macros: list[DayMacros]) -> DayMacros:
 
 # ── Raffinement Claude ────────────────────────────────────────────────────────
 
+def _nudge_for_sport_context(
+    slots: list[PlannedSlot],
+    recipes: list[RecipeWithMacros],
+    activity_schedule: list[ActivityDayContext],
+) -> list[PlannedSlot]:
+    """
+    Réorganise légèrement les créneaux pour que les journées sportives intenses
+    reçoivent les recettes plus caloriques disponibles, et les journées de repos
+    les plus légères — sans modifier les jours ni les créneaux meal_slot.
+
+    Algorithme : échange les recipe_ids entre créneaux de même meal_slot
+    quand cela améliore l'alignement sport × calorie.
+    Silencieux : aucune donnée sport n'est exposée à l'utilisateur.
+    """
+    if not slots:
+        return slots
+
+    recipe_map   = {r.id: r for r in recipes}
+    day_load     = {ctx.day_of_week: ctx.load_level for ctx in activity_schedule}
+
+    # Score pour chaque slot : calories × préférence (+1 demanding, -1 rest, 0 autre)
+    def _load_score(day: int) -> int:
+        load = day_load.get(day, ActivityLoadLevel.rest)
+        if load == ActivityLoadLevel.demanding: return  1
+        if load == ActivityLoadLevel.rest:      return -1
+        return 0
+
+    # Grouper les slots par meal_slot pour ne permuter que les équivalents
+    from collections import defaultdict
+    by_slot: dict[str, list[int]] = defaultdict(list)
+    for i, s in enumerate(slots):
+        by_slot[s.meal_slot].append(i)
+
+    result = list(slots)
+
+    for meal_slot, indices in by_slot.items():
+        # Trier les indices : les journées demanding d'abord
+        sorted_indices = sorted(indices, key=lambda i: -_load_score(result[i].day_of_week))
+        # Trier les recipe_ids par calories desc pour les allouer aux jours demandants
+        current_recipes = [result[i].recipe_id for i in indices]
+        calories_by_id  = lambda rid: (recipe_map.get(rid) and recipe_map[rid].calories) or 0
+        sorted_recipes  = sorted(current_recipes, key=calories_by_id, reverse=True)
+
+        # Réattribuer
+        for idx, recipe_id in zip(sorted_indices, sorted_recipes):
+            recipe = recipe_map.get(recipe_id)
+            if recipe:
+                old = result[idx]
+                result[idx] = PlannedSlot(
+                    recipe_id=recipe.id,
+                    recipe_name=recipe.name,
+                    day_of_week=old.day_of_week,
+                    meal_slot=old.meal_slot,
+                    portions=float(recipe.servings),
+                )
+
+    return result
+
+
 def _should_call_claude(
     recipes: list[RecipeWithMacros],
     profile: NutritionProfile,
+    activity_schedule: Optional[list[ActivityDayContext]] = None,
 ) -> bool:
     """
-    Appeler Claude uniquement si :
-    - Il y a au moins 4 recettes (sinon l'algorithme local est optimal)
-    - L'objectif n'est pas "maintain" (sinon la distribution par variété suffit)
-    - Ou si l'utilisateur a des contraintes spécifiques (batch cooking + temps limité)
+    Appeler Claude si :
+    - ≥ 4 recettes avec macros
+    - objectif non-"maintain" OU contraintes OU contexte sportif actif
     """
-    has_enough_recipes = len(recipes) >= 4
+    has_enough_recipes     = len(recipes) >= 4
+    has_macros             = any(r.calories is not None for r in recipes)
     has_specific_objective = profile.objective != "maintain"
-    has_constraints = bool(profile.excluded_foods or profile.allergies or profile.batch_cooking)
-    has_macros = any(r.calories is not None for r in recipes)
+    has_constraints        = bool(profile.excluded_foods or profile.allergies or profile.batch_cooking)
+    has_sport_context      = bool(
+        activity_schedule and
+        any(d.load_level != ActivityLoadLevel.rest for d in activity_schedule)
+    )
 
-    return has_enough_recipes and (has_specific_objective or has_constraints) and has_macros
+    return has_enough_recipes and has_macros and (
+        has_specific_objective or has_constraints or has_sport_context
+    )
 
 
-def _build_refine_system_prompt(total_slots: int, slot_types: list[str]) -> str:
-    """Construit le prompt système de raffinement selon le nombre de créneaux et les slots actifs."""
+def _build_refine_system_prompt(
+    total_slots: int,
+    slot_types: list[str],
+    activity_schedule: Optional[list[ActivityDayContext]] = None,
+) -> str:
+    """Construit le prompt système de raffinement selon le nombre de créneaux, les slots et le sport."""
     slots_str = " ou ".join(f'"{s}"' for s in slot_types)
+
+    sport_block = ""
+    if activity_schedule and any(d.load_level != ActivityLoadLevel.rest for d in activity_schedule):
+        day_names = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
+        lines = []
+        for d in sorted(activity_schedule, key=lambda x: x.day_of_week):
+            if d.load_level != ActivityLoadLevel.rest:
+                lines.append(
+                    f"  • {day_names[d.day_of_week]} : {d.load_level.value} "
+                    f"({d.total_duration_min} min, {d.dominant_type})"
+                )
+        if lines:
+            sport_block = (
+                "\n\nCONTEXTE SPORTIF DE LA SEMAINE\n"
+                + "\n".join(lines)
+                + "\n— Journées 'demanding' : placer naturellement les recettes plus riches en glucides/énergie si disponibles."
+                + "\n— Journées 'rest' : placer les recettes plus légères si disponibles."
+                + "\n— Ne JAMAIS mentionner ce contexte à l'utilisateur. Aucun commentaire sur la charge sportive."
+            )
+
     return f"""Tu es VITA, Témoin Bienveillant. Tu aides à organiser la semaine alimentaire
 d'un utilisateur en répartissant ses recettes sur ses créneaux.
 
@@ -392,7 +489,7 @@ RÈGLES ABSOLUES
   le soir et en énergie le matin, sans rigidité.
 — Si l'objectif est "lose" (perte de poids), privilégier les repas légers le soir.
 — Si batch_cooking=true, la recette la plus longue doit être au créneau 6-dinner (dimanche soir).
-— Toujours garder {total_slots} créneaux. Ne pas en supprimer.
+— Toujours garder {total_slots} créneaux. Ne pas en supprimer.{sport_block}
 
 FORMAT DE RÉPONSE OBLIGATOIRE — JSON pur, aucun commentaire :
 [
@@ -410,14 +507,15 @@ async def _refine_with_claude(
     slots: list[PlannedSlot],
     recipes: list[RecipeWithMacros],
     profile: NutritionProfile,
+    activity_schedule: Optional[list[ActivityDayContext]] = None,
 ) -> Optional[list[PlannedSlot]]:
     """
     Demande à Claude de réorganiser les créneaux pour mieux servir l'objectif.
     Retourne None en cas d'échec (l'algorithme local est alors utilisé).
     """
-    total_slots     = len(slots)
+    total_slots      = len(slots)
     valid_slot_types = sorted(set(s.meal_slot for s in slots))
-    system_prompt   = _build_refine_system_prompt(total_slots, valid_slot_types)
+    system_prompt    = _build_refine_system_prompt(total_slots, valid_slot_types, activity_schedule)
 
     recipes_summary = [
         {
