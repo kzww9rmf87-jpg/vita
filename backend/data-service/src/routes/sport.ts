@@ -291,14 +291,14 @@ export const sportRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /sport/training-planner/suggest
   // Génère une semaine d'entraînement depuis le profil sportif de l'utilisateur.
+  // Si aucun profil n'existe, utilise les valeurs par défaut (beginner, 3 séances, [1,3,5]).
   // Ne persiste rien — l'utilisateur sauvegarde ensuite via POST /sport/training-plans.
-  // Returns: TrainingWeekPlan
+  // Returns: TrainingWeekPlan + hasProfile: bool
   // Auth: JWT requis
   app.post('/training-planner/suggest', async (req, reply) => {
     const userId = (req.user as { sub: string }).sub
 
-    // Récupérer le profil sportif
-    const profile = await queryOne<{
+    const row = await queryOne<{
       fitness_level:        string
       preferred_activities: string[]
       sessions_per_week:    number
@@ -312,8 +312,15 @@ export const sportRoutes: FastifyPluginAsync = async (app) => {
       [userId]
     )
 
-    if (!profile) {
-      return reply.status(404).send({ error: 'SPORT_PROFILE_REQUIRED' })
+    // Sans profil : valeurs par défaut identiques à SportProfileSchema
+    const hasProfile = row !== null
+    const profile = row ?? {
+      fitness_level:        'beginner',
+      preferred_activities: [] as string[],
+      sessions_per_week:    3,
+      session_duration_min: 45,
+      available_days:       [1, 3, 5],
+      context:              null,
     }
 
     try {
@@ -337,6 +344,7 @@ export const sportRoutes: FastifyPluginAsync = async (app) => {
         })),
         rationale:  result.rationale,
         usedClaude: result.used_claude,
+        hasProfile,
       })
     } catch (err) {
       if (err instanceof AIEngineError) {

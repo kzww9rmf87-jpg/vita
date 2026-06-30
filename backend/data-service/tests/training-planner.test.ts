@@ -58,12 +58,28 @@ const MOCK_AI_RESPONSE = {
 describe('POST /sport/training-planner/suggest', () => {
   beforeEach(() => { vi.clearAllMocks() })
 
-  it('404 when sport profile does not exist', async () => {
+  it('200 with default profile when no sport profile exists', async () => {
     ;(queryOne as any).mockResolvedValue(null)
+    ;(requestTrainingPlan as any).mockResolvedValue(MOCK_AI_RESPONSE)
     const app = await makeApp()
     const res = await app.inject({ method: 'POST', url: '/sport/training-planner/suggest' })
-    expect(res.statusCode).toBe(404)
-    expect(res.json().error).toBe('SPORT_PROFILE_REQUIRED')
+    expect(res.statusCode).toBe(200)
+    expect(res.json().hasProfile).toBe(false)
+  })
+
+  it('uses default profile values when no profile exists', async () => {
+    ;(queryOne as any).mockResolvedValue(null)
+    ;(requestTrainingPlan as any).mockResolvedValue(MOCK_AI_RESPONSE)
+    const app = await makeApp()
+    await app.inject({ method: 'POST', url: '/sport/training-planner/suggest' })
+    expect(requestTrainingPlan).toHaveBeenCalledWith(
+      'user-uuid-123',
+      expect.objectContaining({
+        fitness_level:     'beginner',
+        sessions_per_week: 3,
+        available_days:    [1, 3, 5],
+      })
+    )
   })
 
   it('returns 200 with camelCase sessions and rationale', async () => {
@@ -82,6 +98,7 @@ describe('POST /sport/training-planner/suggest', () => {
       durationMin:  45,
     })
     expect(body.usedClaude).toBe(false)
+    expect(body.hasProfile).toBe(true)
   })
 
   it('passes profile fields to AI engine', async () => {

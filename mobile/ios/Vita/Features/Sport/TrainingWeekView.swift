@@ -3,6 +3,7 @@ import SwiftUI
 struct TrainingWeekView: View {
     @StateObject private var planVM    = TrainingPlanViewModel()
     @StateObject private var plannerVM = TrainingPlannerViewModel()
+    @StateObject private var profileVM = SportProfileViewModel()
 
     var body: some View {
         ZStack {
@@ -29,7 +30,11 @@ struct TrainingWeekView: View {
                 }
             }
         }
-        .task { await planVM.load() }
+        .task {
+            async let plans: () = planVM.load()
+            async let profile: () = profileVM.load()
+            _ = await (plans, profile)
+        }
         .sheet(isPresented: $planVM.showCreateSheet) {
             CreatePlanSheet(vm: planVM)
         }
@@ -55,6 +60,20 @@ struct TrainingWeekView: View {
             Text("Suggestion VITA")
                 .font(VitaFont.headline())
                 .foregroundStyle(VitaColor.textPrimary)
+
+            // Message doux si aucun profil sportif renseigné
+            if !profileVM.isLoading && profileVM.profile == nil {
+                HStack(spacing: VitaSpacing.sm) {
+                    Image(systemName: "info.circle")
+                        .foregroundStyle(VitaColor.accent)
+                    Text("VITA peut te proposer une base. Pour un plan plus adapté, complète ton profil sportif.")
+                        .font(VitaFont.caption())
+                        .foregroundStyle(VitaColor.textSecondary)
+                }
+                .padding(VitaSpacing.sm)
+                .background(VitaColor.accent.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: VitaRadius.sm))
+            }
 
             Button {
                 Task { await plannerVM.suggest() }
@@ -197,6 +216,20 @@ struct SuggestionSheet: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: VitaSpacing.lg) {
+
+                        // Message doux si plan basé sur valeurs par défaut
+                        if !plan.hasProfile {
+                            HStack(spacing: VitaSpacing.sm) {
+                                Image(systemName: "info.circle")
+                                    .foregroundStyle(VitaColor.accent)
+                                Text("Ce plan est basé sur des valeurs par défaut. Complète ton profil sportif pour une proposition plus adaptée.")
+                                    .font(VitaFont.caption())
+                                    .foregroundStyle(VitaColor.textSecondary)
+                            }
+                            .padding(VitaSpacing.sm)
+                            .background(VitaColor.accent.opacity(0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: VitaRadius.sm))
+                        }
 
                         // Rationale
                         Text(plan.rationale)

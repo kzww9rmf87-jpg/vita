@@ -20,6 +20,7 @@ struct AITrainingWeekPlan: Codable {
     let sessions:   [AIPlannedSession]
     let rationale:  String
     let usedClaude: Bool
+    let hasProfile: Bool    // false = plan généré avec profil par défaut
 }
 
 // MARK: — ViewModel
